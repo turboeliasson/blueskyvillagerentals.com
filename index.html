@@ -115,13 +115,15 @@ img{max-width:100%; height:auto; display:block}
 @keyframes coverDrift{ to{ transform:scale(1.0) } }
 /* readability scrims - top for masthead, bottom for cover line */
 .cover::before{content:""; position:absolute; inset:0; z-index:-1; pointer-events:none;
-  background:linear-gradient(to bottom, rgba(31,43,52,.46) 0%, rgba(31,43,52,0) 34%, rgba(31,43,52,0) 52%, rgba(31,43,52,.62) 100%)}
+  background:linear-gradient(to bottom, rgba(31,43,52,.72) 0%, rgba(31,43,52,.34) 20%, rgba(31,43,52,0) 40%, rgba(31,43,52,0) 48%, rgba(31,43,52,.5) 74%, rgba(31,43,52,.82) 100%)}
+.cover::after{content:""; position:absolute; inset:0; z-index:-1; pointer-events:none;
+  background:radial-gradient(120% 90% at 6% 96%, rgba(31,43,52,.72) 0%, rgba(31,43,52,.28) 34%, rgba(31,43,52,0) 60%)}
 
 /* masthead block at top */
 .masthead{padding:clamp(74px,11vh,120px) clamp(20px,5vw,48px) 0; text-align:center; position:relative; z-index:2}
 .masthead__title{font-family:var(--font-display); color:var(--cream); font-weight:380;
   font-size:clamp(2.1rem,8.4vw,6.4rem); letter-spacing:.02em; line-height:.96; text-wrap:balance;
-  text-shadow:0 2px 30px rgba(31,43,52,.45)}
+  text-shadow:0 1px 3px rgba(31,43,52,.55), 0 3px 16px rgba(31,43,52,.6), 0 6px 40px rgba(31,43,52,.5)}
 .masthead__rule{display:flex; align-items:center; justify-content:center; margin-top:20px}
 .masthead__issue{font-family:var(--font-body); font-size:clamp(.92rem,1.8vw,1.08rem); letter-spacing:0;
   color:rgba(241,236,224,.96); white-space:nowrap; text-shadow:0 1px 4px rgba(31,43,52,.55), 0 2px 18px rgba(31,43,52,.45)}
@@ -140,11 +142,11 @@ img{max-width:100%; height:auto; display:block}
 .coverline{padding:0 clamp(20px,5vw,48px) clamp(40px,7vh,84px); position:relative; z-index:2; max-width:920px}
 .coverline__h1{font-family:var(--font-display); color:#FBF8F1; font-weight:400;
   font-size:clamp(2.4rem,5.8vw,4.8rem); line-height:1.03; letter-spacing:-.02em; max-width:18ch;
-  text-shadow:0 2px 26px rgba(31,43,52,.5)}
+  text-shadow:0 1px 3px rgba(31,43,52,.7), 0 2px 14px rgba(31,43,52,.7), 0 4px 34px rgba(31,43,52,.55)}
 .coverline__h1 em{font-style:normal; font-weight:inherit; color:inherit}
 .coverline__h1 .hl{color:var(--accent)}
-.coverline__sub{font-family:var(--font-body); color:rgba(241,236,224,.94); font-size:clamp(1rem,1.6vw,1.18rem);
-  line-height:1.5; max-width:46ch; margin:20px 0 26px}
+.coverline__sub{font-family:var(--font-body); color:rgba(241,236,224,.96); font-size:clamp(1rem,1.6vw,1.18rem);
+  line-height:1.5; max-width:46ch; margin:20px 0 26px; text-shadow:0 1px 3px rgba(31,43,52,.65), 0 2px 12px rgba(31,43,52,.6)}
 .coverline__cta{display:flex; align-items:center; gap:22px; flex-wrap:wrap}
 .coverline__call{color:#F1ECE0; text-decoration:none; font-size:.96rem}
 .coverline__call:hover{text-decoration:underline; text-underline-offset:3px}
