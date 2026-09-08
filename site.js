@@ -3,6 +3,7 @@ function setupEnquiry(form) {
   const propertyStep = form.querySelector('.property-step');
   const propertyContinue = form.querySelector('.property-continue');
   const contactStep = form.querySelector('.contact-step');
+  const contactReveal = form.querySelector('.contact-reveal');
   const feedback = form.querySelector('.form-feedback');
   const contactFields = contactStep.querySelectorAll('input:not(.honeypot), select');
   let expanded = false;
@@ -10,6 +11,10 @@ function setupEnquiry(form) {
   let complete = false;
   let requestId;
   let submittedDetails;
+
+  contactReveal.addEventListener('transitionend', event => {
+    if (event.target === contactReveal && event.propertyName === 'grid-template-rows') contactReveal.classList.add('is-open');
+  });
 
   function showError(message, field) {
     feedback.textContent = message;
@@ -27,7 +32,9 @@ function setupEnquiry(form) {
     contactFields.forEach(field => { field.disabled = false; });
     propertyContinue.hidden = true;
     propertyContinue.querySelector('button').setAttribute('aria-expanded', 'true');
+    contactReveal.getBoundingClientRect();
     card.classList.add('is-expanded');
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) contactReveal.classList.add('is-open');
   }
 
   form.addEventListener('input', (event) => {
@@ -65,6 +72,7 @@ function setupEnquiry(form) {
       submittedDetails = details;
     }
     sending = true;
+    form.setAttribute('aria-busy', 'true');
     const button = contactStep.querySelector('button[type="submit"]');
     const originalLabel = button.innerHTML;
     const fields = [form.elements.place, ...contactFields];
@@ -98,6 +106,7 @@ function setupEnquiry(form) {
       feedback.textContent = error.message === 'rate' ? 'Too many attempts. Please try again later, or call us at 704-902-5644.' : 'We could not confirm your enquiry was sent. Please try again, or call 704-902-5644.';
     } finally {
       sending = false;
+      form.removeAttribute('aria-busy');
       fields.forEach(field => { field.disabled = complete; });
       button.disabled = complete;
       button.innerHTML = originalLabel;
