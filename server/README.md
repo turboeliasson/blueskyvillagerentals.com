@@ -6,8 +6,8 @@ sends the existing owner-enquiry email. An email failure does not discard the le
 
 - Proptonomy organization: Blue Sky Village (`3c2d7060-f7c8-47c4-8102-27010603592b`).
 - Public form slug: `blue-sky-village-estimate`.
-- Form submissions enter Growth as New leads, including contact details, address,
-  bedrooms and the website form identifier.
+- Form submissions use the API's New status and appear in Growth's Outreach
+  stage, including contact details, address, bedrooms and the website form identifier.
 - Older cached pages using phone-only contact details enter as Started leads.
 - A request ID prevents repeat saves and emails for retries during the same service
   process, retained for 24 hours. The retry cache is cleared by service restarts.
