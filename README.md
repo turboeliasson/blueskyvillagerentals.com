@@ -7,7 +7,7 @@ Run `npm run dev` to open the preview at http://127.0.0.1:4179. Run `npm run bui
 ## Design and conversion changes
 
 - A Southern lakeside guestbook identity: painted scenery, Young Serif headlines, Caveat handwritten details, buttery paper, sky blue, and sun-yellow accents. The existing heron provides continuity.
-- The opening “See how much you can earn” button leads straight to the letter's address field. As the owner starts typing, the letter unfolds to collect their name, email, and phone with a country code defaulting to +1.
+- A subtle address field sits directly in the hero beneath “See how much you can earn.” Typing reveals name, email, and phone in place, with +1 selected. The entire request can be completed in the hero without a jump to another section. The letter further down offers the same enquiry flow.
 - Real home photos appear as postcards. Property-care copy, a plain-English fee note, owner-use reassurance, and six FAQs support the homeowner invitation.
 - Direct booking and phone links, accessible form labels and errors, privacy information, and reduced-motion support.
 - No fabricated ratings, earnings results, owner quotes, or revenue guarantees.
@@ -30,7 +30,7 @@ Client success requires a successful HTTP response and `{ "ok": true }`. On fail
 
 - Six Node tests cover incomplete or invalid enquiries, cross-origin requests, body limits, spam trap, forwarded fields, and upstream errors. External delivery is mocked.
 - Isolated browser checks passed at 360, 390, 768, 1024, and 1440 px, with no horizontal overflow.
-- Browser checks cover the opening CTA, automatic expansion without focus loss or partial submission, required fields, email and phone validation, country codes, preserved details after a failed send, stable retry IDs, and confirmed success. Existing links, FAQs, and the privacy dialog were checked with the previous design revision.
+- Browser checks cover a visible hero address field and stable address/scroll positions at all five widths, keyboard flow, automatic expansion without partial submission, independent hero and letter forms, required fields, email and phone validation, preserved details after a failed send, stable retry IDs, and confirmed success. International country codes, existing links, FAQs, and the privacy dialog were also checked with the previous design revision.
 - A local integration check used the current lead service source with all external requests mocked. Both contact fields reached the expected Growth form and notification; two identical requests produced one lead and one notification.
 - Desktop, mobile, and the expanded mobile form were visually inspected. No browser JavaScript errors occurred.
 
