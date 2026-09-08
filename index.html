@@ -104,7 +104,16 @@ img{max-width:100%; height:auto; display:block}
 .nav.is-stuck .nav__link{text-shadow:none; opacity:.82}
 .nav__link:hover{opacity:1}
 .nav .btn{padding:10px 20px; font-size:.92rem}
+.nav__cta-short{display:none}
 @media (max-width:860px){ .nav__links .nav__link{display:none} }
+@media (max-width:600px){
+  .nav{gap:10px}
+  .nav__links{display:none}
+  .nav .btn{padding:10px 16px; white-space:nowrap; font-size:.86rem}
+  .nav__cta-long{display:none}
+  .nav__cta-short{display:inline}
+  .nav__word{font-size:.94rem}
+}
 
 /* =========================================================
    COVER - full-bleed photo, masthead arched over the sky
@@ -338,6 +347,36 @@ img{max-width:100%; height:auto; display:block}
   .field--row{grid-template-columns:1fr}
 }
 
+/* address-first estimate */
+.earn{padding-block:clamp(48px,7vw,88px); scroll-margin-top:88px}
+.earn__panel{background:var(--surface-sage); border:1px solid var(--line-sage); border-radius:24px;
+  padding:clamp(28px,5vw,64px); text-align:center}
+.earn__intro{margin:0 auto 14px; color:var(--ink-2); font-size:1rem}
+.earn h2{font-size:clamp(2rem,4vw,3.4rem); max-width:24ch; margin-inline:auto; line-height:1.12}
+.earn__sub{margin:18px auto 32px; color:var(--ink-2); max-width:48ch}
+.earn__form{text-align:left; max-width:860px; margin-inline:auto}
+.earn .field label{color:var(--ink-2)}
+.earn .field input,.earn .field select{background:var(--surface); color:var(--ink); border:1px solid var(--line-sage); padding:16px 18px}
+.earn .field input::placeholder{color:var(--ink-2); opacity:.8}
+.earn .field input:focus,.earn .field select:focus{border-color:var(--ink); box-shadow:0 0 0 3px rgba(40,55,68,.12)}
+.earn__address input{font-size:1.125rem!important; min-height:64px}
+.earn__details[hidden]{display:none}
+.earn__details .field--row{grid-template-columns:1fr 1fr; gap:18px}
+.earn__form .btn{width:100%; justify-content:center; margin-top:8px; min-height:56px}
+.earn__hint,.earn .estimate__micro{color:var(--ink-2); text-align:center; margin:16px auto 0; font-size:.94rem}
+.earn .estimate__fb{text-align:center; margin-bottom:0}
+.earn .estimate__fb:empty{display:none}
+.earn .estimate__fb.ok{color:#365E41}
+.earn .estimate__fb.err{color:#9A3520}
+.estimate select option,.earn select option{background:var(--surface); color:var(--ink)}
+.estimate__micro a{color:inherit}
+.btn:disabled{cursor:default; opacity:.75; transform:none}
+@media (max-width:600px){
+  .earn__details .field--row{grid-template-columns:1fr; gap:0}
+  .earn__panel{border-radius:18px; padding:28px 20px}
+  .earn__sub{margin-bottom:26px}
+}
+
 /* footer */
 .foot{background:var(--ink-deep); color:var(--sage-deep); padding:28px clamp(20px,5vw,48px)}
 .foot__inner{max-width:var(--container); margin-inline:auto; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; font-family:var(--font-body); font-size:.92rem; letter-spacing:0; text-transform:none}
@@ -362,7 +401,7 @@ img{max-width:100%; height:auto; display:block}
     <a class="nav__link" href="#pricing">Pricing</a>
     <a class="nav__link" href="https://blueskyvillage.guestybookings.com/" target="_blank" rel="noopener">Book a stay</a>
   </div>
-  <a class="btn btn-primary" href="#estimate">See what your home could earn</a>
+  <a class="btn btn-primary" href="#rental-estimate"><span class="nav__cta-long">See what your home could earn</span><span class="nav__cta-short">Free estimate</span></a>
 </nav>
 
 <!-- ===================== COVER ===================== -->
@@ -383,7 +422,7 @@ img{max-width:100%; height:auto; display:block}
     <p class="coverline__h1 set d4">Your home,<br>booked, cleaned, and <span class="hl">cared&nbsp;for.</span></p>
     <p class="coverline__sub set d5">Family-run vacation rental management.</p>
     <div class="coverline__cta set d5">
-      <a class="btn btn-primary" href="#estimate">See what your home could earn</a>
+      <a class="btn btn-primary" href="#rental-estimate">See what your home could earn</a>
       <a class="coverline__call" href="tel:+17049025644">Or call us, <b>704-902-5644</b></a>
     </div>
   </div>
@@ -392,6 +431,59 @@ img{max-width:100%; height:auto; display:block}
 </header>
 
 <main id="feature">
+
+  <!-- ===================== RENTAL ESTIMATE ===================== -->
+  <section class="earn" id="rental-estimate" aria-labelledby="earn-h">
+    <div class="wrap">
+      <div class="earn__panel">
+        <p class="earn__intro">Your home. Our local know-how.</p>
+        <h2 id="earn-h">See what your home could earn</h2>
+        <p class="earn__sub">A free rental estimate from the family-run team caring for homes across the Carolinas and Georgia.</p>
+        <form class="earn__form" id="early-estimate-form" data-estimate-form novalidate>
+          <div class="field earn__address">
+            <label for="early-place">Property address or town</label>
+            <input id="early-place" name="place" type="text" autocomplete="street-address" maxlength="300"
+                   placeholder="Enter your property address or town" aria-controls="early-details" aria-describedby="early-hint" required>
+          </div>
+          <p class="earn__hint" id="early-hint">Start with your address. We&rsquo;ll take it from there.</p>
+          <div class="earn__details" id="early-details">
+            <div class="field--row">
+              <div class="field">
+                <label for="early-name">Your name</label>
+                <input id="early-name" name="name" type="text" autocomplete="name" maxlength="200" placeholder="Your full name" required>
+              </div>
+              <div class="field">
+                <label for="early-phone">Phone <span>(optional)</span></label>
+                <input id="early-phone" name="phone" type="tel" autocomplete="tel" maxlength="30" placeholder="+1 (704) 555-0123">
+              </div>
+            </div>
+            <div class="field--row">
+              <div class="field">
+                <label for="early-email">Email</label>
+                <input id="early-email" name="email" type="email" autocomplete="email" maxlength="254" placeholder="you@example.com" required>
+              </div>
+              <div class="field">
+                <label for="early-beds">Bedrooms</label>
+                <select id="early-beds" name="bedrooms" required>
+                  <option value="" disabled selected>Select bedrooms</option>
+                  <option value="1">1 bedroom</option>
+                  <option value="2">2 bedrooms</option>
+                  <option value="3">3 bedrooms</option>
+                  <option value="4">4 bedrooms</option>
+                  <option value="5">5+ bedrooms</option>
+                </select>
+              </div>
+            </div>
+            <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"
+                   style="position:absolute;left:-9999px;height:0;width:0;border:0;padding:0">
+            <button class="btn btn-primary" type="submit">Get my free rental estimate</button>
+            <p class="estimate__micro">Free, no obligation. A real person will review your home.</p>
+          </div>
+          <p class="estimate__fb" role="status" aria-live="polite"></p>
+        </form>
+      </div>
+    </div>
+  </section>
 
   <!-- ===================== FEATURE OPENER ===================== -->
   <section class="section opener" aria-labelledby="opener-deck">
@@ -587,11 +679,11 @@ img{max-width:100%; height:auto; display:block}
         <p class="closing__expand" data-reveal>Own elsewhere? We&rsquo;re growing into new regions. <a href="#estimate">Let&rsquo;s talk.</a></p>
       </div>
 
-      <form class="estimate" id="estimate-form" data-reveal novalidate>
+      <form class="estimate" id="estimate-form" data-estimate-form data-reveal novalidate>
         <span class="eyebrow">Your Free Estimate</span>
         <div class="field">
           <label for="f-place">Address or town</label>
-          <input id="f-place" name="place" type="text" inputmode="text" autocomplete="address-level2"
+          <input id="f-place" name="place" type="text" inputmode="text" autocomplete="address-level2" maxlength="300"
                  placeholder="Where is your home?…" required>
         </div>
         <div class="field">
@@ -607,12 +699,17 @@ img{max-width:100%; height:auto; display:block}
         </div>
         <div class="field">
           <label for="f-name">Your name</label>
-          <input id="f-name" name="name" type="text" autocomplete="name" placeholder="Your name…" required>
+          <input id="f-name" name="name" type="text" autocomplete="name" maxlength="200" placeholder="Your name…" required>
         </div>
         <div class="field">
-          <label for="f-contact">Email or phone</label>
-          <input id="f-contact" name="contact" type="text" inputmode="text" autocomplete="off"
-                 placeholder="How we reach you…" required>
+          <label for="f-contact">Email</label>
+          <input id="f-contact" name="email" type="email" autocomplete="email" maxlength="254"
+                 placeholder="you@example.com" required>
+        </div>
+        <div class="field">
+          <label for="f-phone">Phone (optional)</label>
+          <input id="f-phone" name="phone" type="tel" autocomplete="tel" maxlength="30"
+                 placeholder="+1 (704) 555-0123">
         </div>
         <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"
                style="position:absolute;left:-9999px;height:0;width:0;border:0;padding:0">
@@ -660,37 +757,74 @@ document.querySelectorAll('[data-reveal]').forEach((el,i)=>{ if(RM){el.style.opa
   }
 })();
 
-/* ---- estimate form -> owner-enquiry endpoint, email fallback ---- */
+/* ---- address-first estimate, shared with the footer form ---- */
 (function(){
   const ENDPOINT='https://photo.proptonomy.ai/bsv-lead';
-  const form=document.getElementById('estimate-form');
-  const fb=document.getElementById('form-fb');
+  const address=document.getElementById('early-place');
+  const details=document.getElementById('early-details');
+  const hint=document.getElementById('early-hint');
+  function revealDetails(){
+    if(address.value.trim()){
+      details.hidden=false;
+      hint.hidden=true;
+    }
+  }
+  details.hidden=!address.value.trim();
+  hint.hidden=!details.hidden;
+  address.addEventListener('input',revealDetails);
+  address.addEventListener('change',revealDetails);
+  window.addEventListener('pageshow',revealDetails);
+
+  document.querySelectorAll('[data-estimate-form]').forEach(form=>{
+  const fb=form.querySelector('.estimate__fb');
+  let requestId;
+  let sent=false;
+  let sending=false;
+  form.addEventListener('input',()=>{if(!sending && !sent) requestId=undefined;});
   form.addEventListener('submit',async (ev)=>{
     ev.preventDefault();
-    const place=form.place.value.trim();
-    const beds=form.bedrooms.value;
-    const name=form.name.value.trim();
-    const contact=form.contact.value.trim();
-    if(!place || !beds || !name || !contact){
-      fb.textContent='Please add your home, bedrooms, name, and a way to reach you.';
+    if(sending || sent) return;
+    if(form.id==='early-estimate-form'){details.hidden=false;hint.hidden=true;}
+    const values=new FormData(form);
+    const place=String(values.get('place') || '').trim();
+    const beds=String(values.get('bedrooms') || '');
+    const name=String(values.get('name') || '').trim();
+    const email=String(values.get('email') || '').trim();
+    const phone=String(values.get('phone') || '').trim();
+    if(!form.reportValidity() || !place || !name){
+      fb.textContent='Please add your home, bedrooms, name, and email.';
       fb.className='estimate__fb err';
       return;
     }
+    if(phone && !/^\+?[\d\s().-]{7,30}$/.test(phone)){
+      fb.textContent='Please check your phone number, including the country code.';
+      fb.className='estimate__fb err';
+      form.elements.phone.focus();
+      return;
+    }
     const btn=form.querySelector('button[type=submit]');
+    requestId=requestId || crypto.randomUUID();
+    sending=true;
     btn.disabled=true;
     fb.textContent='Sending…';
     fb.className='estimate__fb';
     try{
       const r=await fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({place,bedrooms:beds,name,contact,website:form.website.value})});
-      if(!r.ok) throw new Error('send failed');
+        body:JSON.stringify({place,bedrooms:beds,name,email,phone,requestId,form:form.id,website:values.get('website') || ''})});
+      const result=await r.json();
+      if(!r.ok || !result.ok) throw new Error('send failed');
+      sent=true;
+      btn.textContent='Request received';
       fb.textContent='Thank you, '+name+'. We’ll get back to you within a day.';
       fb.className='estimate__fb ok';
     }catch(e){
       btn.disabled=false;
-      fb.innerHTML='Something went wrong sending this. Please email us at <a href="mailto:blueskyvillagerentals@gmail.com" style="color:inherit">blueskyvillagerentals@gmail.com</a> or call 704-902-5644.';
+      fb.innerHTML='We couldn’t submit your request. Please try again, email <a href="mailto:blueskyvillagerentals@gmail.com" style="color:inherit">blueskyvillagerentals@gmail.com</a>, or call 704-902-5644.';
       fb.className='estimate__fb err';
+    }finally{
+      sending=false;
     }
+  });
   });
 })();
 </script>
