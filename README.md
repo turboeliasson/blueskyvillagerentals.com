@@ -6,15 +6,15 @@ Run `npm run dev` to open the preview at http://127.0.0.1:4179. Run `npm run bui
 
 ## Design and conversion changes
 
-- Refreshed identity using lake blue, pale neutral surfaces, Manrope, DM Sans, and the existing heron mark.
-- Homeowner-led opening and a two-step enquiry form: property location first, then bedrooms, name, and email or phone.
-- Property-care details, a clear 25% fee explanation, owner-use reassurance, a three-step process, and six FAQs.
+- A Southern lakeside guestbook identity: painted scenery, Young Serif headlines, Caveat handwritten details, buttery paper, sky blue, and sun-yellow accents. The existing heron provides continuity.
+- A welcoming illustrated opening leads homeowners to a letter-style two-step enquiry: property location first, then bedrooms, name, and email or phone.
+- Real home photos appear as postcards. Property-care copy, a plain-English fee note, owner-use reassurance, and six FAQs support the homeowner invitation.
 - Direct booking and phone links, accessible form labels and errors, privacy information, and reduced-motion support.
 - No fabricated ratings, earnings results, owner quotes, or revenue guarantees.
 
 ## Source and claims
 
-The existing website at https://blueskyvillagerentals.com/ supplied the property photos, contact details, service area, founding year, fee, and terms. These were observed on 8 September 2026; independent verification of the business claims was outside this build. The old testimonial and changing portfolio count were omitted. `assets/og.png` is an AI-generated brand illustration for social previews, not a photograph of a managed property.
+The existing website at https://blueskyvillagerentals.com/ supplied the property photos, contact details, service area, founding year, fee, and terms. These were observed on 8 September 2026; independent verification of the business claims was outside this build. The old testimonial and changing portfolio count were omitted. `assets/village-panorama.png` and `assets/village-social.png` are AI-generated brand illustrations, not photographs of managed properties. They were created with the subscription-backed built-in image tool. See `assets/ART-DIRECTION.md` for the asset brief and palette.
 
 ## Enquiry delivery
 
