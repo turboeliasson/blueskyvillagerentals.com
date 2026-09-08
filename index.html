@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bsv-variant="A">
 <head>
+<script src="/experiment.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#F8F4EC">
@@ -735,6 +736,7 @@ img{max-width:100%; height:auto; display:block}
     <a href="https://blueskyvillage.guestybookings.com/" target="_blank" rel="noopener">Book a stay</a>
     <a href="tel:+17049025644">704-902-5644</a>
   </div>
+<p style="text-align:center;font-size:12px;margin:12px 20px"><a href="/privacy.html" style="color:inherit;text-decoration:underline">Privacy and website testing</a></p>
 </footer>
 
 <script>
@@ -834,7 +836,7 @@ document.querySelectorAll('[data-reveal]').forEach((el,i)=>{ if(RM){el.style.opa
     fb.className='estimate__fb';
     try{
       const r=await fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({place,bedrooms:beds,name,email,phone,requestId,form:form.id,website:values.get('website') || ''})});
+        body:JSON.stringify({place,bedrooms:beds,name,email,phone,requestId,form:form.id,website:values.get('website') || '',...(window.BSVExperiment?.leadData() || {})})});
       const result=await r.json();
       if(!r.ok || !result.ok) throw new Error('send failed');
       sent=true;
