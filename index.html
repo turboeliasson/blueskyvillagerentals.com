@@ -348,33 +348,38 @@ img{max-width:100%; height:auto; display:block}
 }
 
 /* address-first estimate */
-.earn{padding-block:clamp(48px,7vw,88px); scroll-margin-top:88px}
-.earn__panel{background:var(--surface-sage); border:1px solid var(--line-sage); border-radius:24px;
-  padding:clamp(28px,5vw,64px); text-align:center}
-.earn__intro{margin:0 auto 14px; color:var(--ink-2); font-size:1rem}
-.earn h2{font-size:clamp(2rem,4vw,3.4rem); max-width:24ch; margin-inline:auto; line-height:1.12}
-.earn__sub{margin:18px auto 32px; color:var(--ink-2); max-width:48ch}
-.earn__form{text-align:left; max-width:860px; margin-inline:auto}
+.earn{padding-top:clamp(64px,9vw,112px); scroll-margin-top:88px}
+.earn__panel{display:grid; grid-template-columns:minmax(0,5fr) minmax(0,7fr); gap:clamp(32px,6vw,72px);
+  align-items:start; padding-bottom:clamp(48px,7vw,88px); border-bottom:1px solid var(--line)}
+.earn__intro{margin:0 0 18px; color:var(--accent-deep); font-size:.94rem; font-weight:560}
+.earn h2{font-size:clamp(2rem,3.6vw,3rem); max-width:16ch; line-height:1.12}
+.earn__sub{margin:22px 0 0; color:var(--ink-2); max-width:38ch}
+.earn__form{min-width:0; width:100%; margin:0; padding:4px}
 .earn .field label{color:var(--ink-2)}
-.earn .field input,.earn .field select{background:var(--surface); color:var(--ink); border:1px solid var(--line-sage); padding:16px 18px}
+.earn .field input,.earn .field select{background:var(--surface); color:var(--ink); border:1px solid var(--line); padding:14px 16px}
 .earn .field input::placeholder{color:var(--ink-2); opacity:.8}
-.earn .field input:focus,.earn .field select:focus{border-color:var(--ink); box-shadow:0 0 0 3px rgba(40,55,68,.12)}
-.earn__address input{font-size:1.125rem!important; min-height:64px}
+.earn .field input:focus,.earn .field select:focus{border-color:var(--accent-deep); box-shadow:0 0 0 3px var(--accent-wash)}
+.earn .earn__address input{font-size:1.125rem; min-height:64px}
 .earn__details[hidden]{display:none}
 .earn__details .field--row{grid-template-columns:1fr 1fr; gap:18px}
 .earn__form .btn{width:100%; justify-content:center; margin-top:8px; min-height:56px}
-.earn__hint,.earn .estimate__micro{color:var(--ink-2); text-align:center; margin:16px auto 0; font-size:.94rem}
-.earn .estimate__fb{text-align:center; margin-bottom:0}
+.earn__hint,.earn .estimate__micro{color:var(--muted); margin:16px 0 0; font-size:.94rem}
+.earn .estimate__micro{text-align:center; font-size:.86rem}
+.earn .estimate__fb{margin-bottom:0}
 .earn .estimate__fb:empty{display:none}
 .earn .estimate__fb.ok{color:#365E41}
 .earn .estimate__fb.err{color:#9A3520}
 .estimate select option,.earn select option{background:var(--surface); color:var(--ink)}
 .estimate__micro a{color:inherit}
 .btn:disabled{cursor:default; opacity:.75; transform:none}
+@media (max-width:860px){
+  .earn__panel{grid-template-columns:1fr; gap:32px}
+  .earn h2{max-width:20ch}
+  .earn__sub{max-width:48ch; margin-top:18px}
+  .earn__form{padding:4px; margin-inline:-4px; width:calc(100% + 8px)}
+}
 @media (max-width:600px){
   .earn__details .field--row{grid-template-columns:1fr; gap:0}
-  .earn__panel{border-radius:18px; padding:28px 20px}
-  .earn__sub{margin-bottom:26px}
 }
 
 /* footer */
@@ -436,14 +441,16 @@ img{max-width:100%; height:auto; display:block}
   <section class="earn" id="rental-estimate" aria-labelledby="earn-h">
     <div class="wrap">
       <div class="earn__panel">
-        <p class="earn__intro">Your home. Our local know-how.</p>
-        <h2 id="earn-h">See what your home could earn</h2>
-        <p class="earn__sub">A free rental estimate from the family-run team caring for homes across the Carolinas and Georgia.</p>
+        <div class="earn__lead">
+          <p class="earn__intro">Your free estimate</p>
+          <h2 id="earn-h">See what your home <span class="hl">could earn.</span></h2>
+          <p class="earn__sub">A free rental estimate from the family-run team caring for homes across the Carolinas and Georgia.</p>
+        </div>
         <form class="earn__form" id="early-estimate-form" data-estimate-form novalidate>
           <div class="field earn__address">
             <label for="early-place">Property address or town</label>
             <input id="early-place" name="place" type="text" autocomplete="street-address" maxlength="300"
-                   placeholder="Enter your property address or town" aria-controls="early-details" aria-describedby="early-hint" required>
+                   placeholder="Your property address or town" aria-controls="early-details" aria-describedby="early-hint" required>
           </div>
           <p class="earn__hint" id="early-hint">Start with your address. We&rsquo;ll take it from there.</p>
           <div class="earn__details" id="early-details">
@@ -763,11 +770,24 @@ document.querySelectorAll('[data-reveal]').forEach((el,i)=>{ if(RM){el.style.opa
   const address=document.getElementById('early-place');
   const details=document.getElementById('early-details');
   const hint=document.getElementById('early-hint');
+  const earlyForm=document.getElementById('early-estimate-form');
+  let expansion;
+  function showDetails(animate=true){
+    if(!details.hidden) return;
+    const start=earlyForm.getBoundingClientRect().height;
+    details.hidden=false;
+    hint.hidden=true;
+    if(!animate || RM) return;
+    const end=earlyForm.getBoundingClientRect().height;
+    const easing=getComputedStyle(document.documentElement).getPropertyValue('--ease').trim();
+    earlyForm.style.overflow='clip';
+    expansion=earlyForm.animate({height:[start+'px',end+'px']},{duration:600,easing});
+    details.animate({opacity:[0,1],transform:['translateY(12px)','translateY(0)']},
+      {duration:460,delay:80,easing,fill:'backwards'});
+    expansion.onfinish=()=>{earlyForm.style.overflow='';expansion=null;};
+  }
   function revealDetails(){
-    if(address.value.trim()){
-      details.hidden=false;
-      hint.hidden=true;
-    }
+    if(address.value.trim()) showDetails();
   }
   details.hidden=!address.value.trim();
   hint.hidden=!details.hidden;
@@ -784,7 +804,11 @@ document.querySelectorAll('[data-reveal]').forEach((el,i)=>{ if(RM){el.style.opa
   form.addEventListener('submit',async (ev)=>{
     ev.preventDefault();
     if(sending || sent) return;
-    if(form.id==='early-estimate-form'){details.hidden=false;hint.hidden=true;}
+    if(form.id==='early-estimate-form'){
+      showDetails(false);
+      expansion?.finish();
+      details.getAnimations().forEach(animation=>animation.finish());
+    }
     const values=new FormData(form);
     const place=String(values.get('place') || '').trim();
     const beds=String(values.get('bedrooms') || '');
