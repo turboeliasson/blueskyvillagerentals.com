@@ -4,6 +4,7 @@ import http from "node:http";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
+import { createExperimentStore, validExperiment } from "./experiments.mjs";
 
 const PORT = 3950;
 const ORGANIZATION_ID = "3c2d7060-f7c8-47c4-8102-27010603592b";
@@ -22,8 +23,9 @@ function cors(req, res) {
   }
 }
 
-export function createLeadServer(env, request = fetch) {
-  const hits = new Map(); // per-IP rate limit
+export function createLeadServer(env, request = fetch, experiments = null) {
+  const hits = new Map(); // per-IP lead rate limit
+  const eventHits = new Map(); // analytics must not consume the lead allowance
   const submissions = new Map(); // keep retries from creating a second lead or email
   return http.createServer(async (req, res) => {
     cors(req, res);
@@ -33,9 +35,12 @@ export function createLeadServer(env, request = fetch) {
 
     const ip = req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.socket.remoteAddress;
     const now = Date.now();
-    const rec = (hits.get(ip) || []).filter(t => now - t < 3600_000);
-    if (rec.length >= 6) { res.writeHead(429, {"Content-Type":"application/json"}); return res.end('{"ok":false,"error":"rate"}'); }
-    rec.push(now); hits.set(ip, rec);
+    const isEvent = new URL(req.url, "http://localhost").searchParams.get("event") === "experiment";
+    if (isEvent && !ALLOWED.has(req.headers.origin)) { res.writeHead(403); return res.end(); }
+    const limits = isEvent ? eventHits : hits;
+    const rec = (limits.get(ip) || []).filter(t => now - t < 3600_000);
+    if (rec.length >= (isEvent ? 240 : 6)) { res.writeHead(429, {"Content-Type":"application/json"}); return res.end('{"ok":false,"error":"rate"}'); }
+    rec.push(now); limits.set(ip, rec);
 
     let body = "";
     req.on("data", c => { body += c; if (body.length > 10_000) req.destroy(); });
@@ -47,6 +52,19 @@ export function createLeadServer(env, request = fetch) {
           : Object.fromEntries(new URLSearchParams(body));
       } catch {}
       if (!d || typeof d !== "object") d = {};
+      if (isEvent) {
+        if (!validExperiment(d.experiment) || !["view", "start"].includes(d.event)) {
+          res.writeHead(400); return res.end();
+        }
+        try {
+          if (!experiments?.record(d.experiment, d.event)) { res.writeHead(409); return res.end(); }
+          res.writeHead(204); return res.end();
+        } catch (error) {
+          console.error("experiment event failed:", error.message);
+          res.writeHead(503); return res.end();
+        }
+      }
+      const experiment = validExperiment(d.experiment) ? d.experiment : null;
       const clean = s => String(s ?? "").replace(/[\r\n]+/g, " ").trim().slice(0, 300);
       const place = clean(d.place), beds = clean(d.bedrooms), name = clean(d.name), contact = clean(d.contact);
       // Older cached pages use a single email-or-phone field.
@@ -69,7 +87,10 @@ export function createLeadServer(env, request = fetch) {
         const leadData = {
           address: place, name, email: email || undefined, phone: phone || undefined,
           note: `Free rental estimate requested. Bedrooms: ${beds || "not provided"}.`,
-          additionalData: { bedrooms: beds, website: "https://blueskyvillagerentals.com/", form: clean(d.form) || "estimate-form" },
+          additionalData: {
+            bedrooms: beds, website: "https://blueskyvillagerentals.com/", form: clean(d.form) || "estimate-form",
+            ...(experiment ? { experimentId: experiment.id, experimentVariant: experiment.variant } : {}),
+          },
         };
         // The create endpoint's Started status is the Lead stage in Growth.
         const leadResponse = await request("https://api.proptonomy.ai/api/leads", {
@@ -82,6 +103,10 @@ export function createLeadServer(env, request = fetch) {
         const leadId = lead.id;
         if (!leadId) throw new Error("proptonomy invalid response");
         console.log(new Date().toISOString(), "lead saved:", leadId, "form:", clean(d.form) || "estimate-form");
+        if (experiment) {
+          try { experiments?.record(experiment, "lead"); }
+          catch (error) { console.error("experiment conversion failed:", error.message); }
+        }
         const text = [
           "New owner enquiry from blueskyvillagerentals.com",
           "",
@@ -90,6 +115,7 @@ export function createLeadServer(env, request = fetch) {
           `Name:      ${name}`,
           `Email:     ${email || "Not provided"}`,
           `Phone:     ${phone || "Not provided"}`,
+          ...(experiment ? [`Website test: ${experiment.id} / ${experiment.variant === "A" ? "A (original)" : "B (village redesign)"}`] : []),
           "",
           "View in Proptonomy: https://app.proptonomy.ai/blue-sky-village/leads",
           "",
@@ -137,5 +163,5 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const env = Object.fromEntries(
     readFileSync("/opt/bsv-lead/.env", "utf8").split("\n").filter(Boolean).map(l => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)])
   );
-  createLeadServer(env).listen(PORT, "127.0.0.1", () => console.log("bsv-lead listening on", PORT));
+  createLeadServer(env, fetch, createExperimentStore()).listen(PORT, "127.0.0.1", () => console.log("bsv-lead listening on", PORT));
 }
