@@ -19,19 +19,21 @@ async function fixture(t, upstream) {
   };
 }
 
-test("saves a submitted BSV lead with property and contact details before emailing", async t => {
+test("saves into BSV's Lead stage with property and contact details before emailing", async t => {
   const calls = [];
   const send = await fixture(t, async (url, options) => {
     calls.push({ url, options });
-    return Response.json(calls.length === 1 ? { success: true, leadId } : { id: "mail" });
+    return Response.json(calls.length === 1 ? { id: leadId, status: "Started" } : { id: "mail" });
   });
   const result = await send(data);
   assert.equal(result.status, 200);
   assert.equal(result.cors, "https://blueskyvillagerentals.com");
   assert.deepEqual(JSON.parse(result.body), { ok: true, leadId });
   assert.equal(calls.length, 2);
-  assert.equal(calls[0].url, "https://api.proptonomy.ai/api/lead-forms/blue-sky-village-estimate/submit");
+  assert.equal(calls[0].url, "https://api.proptonomy.ai/api/leads");
   const lead = JSON.parse(calls[0].options.body);
+  assert.equal(lead.organizationId, "3c2d7060-f7c8-47c4-8102-27010603592b");
+  assert.equal(lead.source, "blueskyvillagerentals.com");
   assert.equal(lead.address, data.place);
   assert.equal(lead.name, data.name);
   assert.equal(lead.email, data.email);
@@ -56,7 +58,7 @@ test("a Proptonomy failure returns failure without sending an email", async t =>
 test("an email failure still acknowledges the saved lead", async t => {
   let calls = 0;
   const send = await fixture(t, async () => ++calls === 1
-    ? Response.json({ success: true, leadId }) : new Response(null, { status: 503 }));
+    ? Response.json({ id: leadId }) : new Response(null, { status: 503 }));
   const result = await send(data);
   assert.equal(result.status, 200);
   assert.equal(JSON.parse(result.body).leadId, leadId);
@@ -66,7 +68,7 @@ test("retries reuse the saved lead and send only one email", async t => {
   let calls = 0;
   const send = await fixture(t, async () => {
     calls++;
-    return Response.json({ success: true, leadId });
+    return Response.json({ id: leadId });
   });
   const body = { ...data, requestId: randomUUID() };
   const results = await Promise.all([send(body), send(body)]);
@@ -78,7 +80,7 @@ test("retries reuse the saved lead and send only one email", async t => {
 test("a failed save can be retried with the same request ID", async t => {
   let calls = 0;
   const send = await fixture(t, async () => ++calls === 1
-    ? new Response(null, { status: 503 }) : Response.json({ success: true, leadId }));
+    ? new Response(null, { status: 503 }) : Response.json({ id: leadId }));
   const body = { ...data, requestId: randomUUID() };
   assert.equal((await send(body)).status, 502);
   assert.equal((await send(body)).status, 200);
@@ -89,7 +91,7 @@ test("cached email-or-phone forms retain contact details in Growth", async t => 
   const calls = [];
   const send = await fixture(t, async (url, options) => {
     calls.push({ url, options });
-    return Response.json({ id: leadId, success: true, leadId });
+    return Response.json({ id: leadId });
   });
   const { email, phone, ...oldForm } = data;
   assert.equal((await send({ ...oldForm, contact: email })).status, 200);

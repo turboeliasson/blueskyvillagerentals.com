@@ -7,7 +7,6 @@ import { resolve } from "node:path";
 
 const PORT = 3950;
 const ORGANIZATION_ID = "3c2d7060-f7c8-47c4-8102-27010603592b";
-const LEAD_FORM = "https://api.proptonomy.ai/api/lead-forms/blue-sky-village-estimate/submit";
 const ALLOWED = new Set([
   "https://blueskyvillagerentals.com",
   "https://www.blueskyvillagerentals.com",
@@ -72,17 +71,16 @@ export function createLeadServer(env, request = fetch) {
           note: `Free rental estimate requested. Bedrooms: ${beds || "not provided"}.`,
           additionalData: { bedrooms: beds, website: "https://blueskyvillagerentals.com/", form: clean(d.form) || "estimate-form" },
         };
-        // Phone-only requests from the old form still reach Growth as Started leads.
-        // New forms collect an email and use the submitted/New form intake.
-        const leadResponse = await request(email ? LEAD_FORM : "https://api.proptonomy.ai/api/leads", {
+        // The create endpoint's Started status is the Lead stage in Growth.
+        const leadResponse = await request("https://api.proptonomy.ai/api/leads", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(email ? leadData : { ...leadData, organizationId: ORGANIZATION_ID, source: "blueskyvillagerentals.com" }),
+          body: JSON.stringify({ ...leadData, organizationId: ORGANIZATION_ID, source: "blueskyvillagerentals.com" }),
           signal: AbortSignal.timeout(20000),
         });
         if (!leadResponse.ok) throw new Error("proptonomy " + leadResponse.status);
         const lead = await leadResponse.json();
-        const leadId = email ? lead.leadId : lead.id;
-        if (!leadId || (email && lead.success !== true)) throw new Error("proptonomy invalid response");
+        const leadId = lead.id;
+        if (!leadId) throw new Error("proptonomy invalid response");
         console.log(new Date().toISOString(), "lead saved:", leadId, "form:", clean(d.form) || "estimate-form");
         const text = [
           "New owner enquiry from blueskyvillagerentals.com",
