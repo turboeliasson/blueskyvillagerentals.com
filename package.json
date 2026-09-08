@@ -1,0 +1,10 @@
+{
+  "name": "blue-sky-village",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "dev": "node preview.mjs",
+    "test": "node --test tests/enquiry.test.mjs"
+  }
+}
