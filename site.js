@@ -1,11 +1,15 @@
 const form = document.getElementById('estimate-form');
 const card = document.querySelector('.estimate-card');
 const propertyStep = document.getElementById('property-step');
+const propertyContinue = document.getElementById('property-continue');
 const contactStep = document.getElementById('contact-step');
 const feedback = document.getElementById('form-feedback');
 const contactFields = contactStep.querySelectorAll('input:not(.honeypot), select');
-let step = 'property';
+let expanded = false;
 let sending = false;
+let complete = false;
+let requestId;
+let submittedDetails;
 
 function showError(message, field) {
   feedback.textContent = message;
@@ -16,51 +20,56 @@ function showError(message, field) {
   }
 }
 
+function expandLetter() {
+  if (expanded || complete) return;
+  expanded = true;
+  contactStep.hidden = false;
+  contactFields.forEach(field => { field.disabled = false; });
+  propertyContinue.hidden = true;
+  propertyContinue.querySelector('button').setAttribute('aria-expanded', 'true');
+  card.classList.add('is-expanded');
+}
+
 form.addEventListener('input', (event) => {
   event.target.removeAttribute('aria-invalid');
   feedback.textContent = '';
+  if (form.elements.place.value.trim()) expandLetter();
 });
-
-document.getElementById('form-back').addEventListener('click', () => {
-  if (sending) return;
-  step = 'property';
-  propertyStep.hidden = false;
-  contactStep.hidden = true;
-  contactFields.forEach(field => { field.disabled = true; });
-  card.classList.remove('is-expanded');
-  feedback.textContent = '';
-  form.elements.place.focus();
+form.addEventListener('change', (event) => {
+  event.target.removeAttribute('aria-invalid');
+  if (form.elements.place.value.trim()) expandLetter();
 });
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
-  if (sending || step === 'success') return;
+  if (sending || complete) return;
   const place = form.elements.place.value.trim();
-  if (!place) return showError('Please add your town or property address.', form.elements.place);
-  if (step === 'property') {
-    step = 'contact';
-    propertyStep.hidden = true;
-    contactStep.hidden = false;
-    contactFields.forEach(field => { field.disabled = false; });
-    document.getElementById('property-summary').textContent = place;
-    card.classList.add('is-expanded');
-    feedback.textContent = '';
-    form.elements.bedrooms.focus();
+  if (!place) return showError('Please add your property address.', form.elements.place);
+  if (!expanded) {
+    expandLetter();
+    form.elements.name.focus();
     return;
   }
-  const bedrooms = form.elements.bedrooms.value;
   const name = form.elements.name.value.trim();
-  const contact = form.elements.contact.value.trim();
-  if (!bedrooms) return showError('Please choose the number of bedrooms.', form.elements.bedrooms);
+  const email = form.elements.email.value.trim();
+  const number = form.elements.phone.value.trim();
+  const phone = number.startsWith('+') ? number : `${form.elements.countryCode.value} ${number}`;
   if (!name) return showError('Please add your name.', form.elements.name);
-  const isEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(contact);
-  const isPhone = /^[+()\d\s.-]+$/.test(contact) && contact.replace(/\D/g, '').length >= 10 && contact.replace(/\D/g, '').length <= 15;
-  if (!isEmail && !isPhone) return showError('Please enter a valid email address or phone number.', form.elements.contact);
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return showError('Please enter a valid email address.', form.elements.email);
+  const digits = phone.replace(/\D/g, '');
+  if (!number || phone.length > 30 || !/^\+?[\d\s().-]+$/.test(phone) || digits.length < 8 || digits.length > 15) return showError('Please enter a valid phone number.', form.elements.phone);
+  const payload = { place, name, email, phone, website: form.elements.website.value, form: 'homeowner-letter' };
+  const details = JSON.stringify(payload);
+  if (details !== submittedDetails) {
+    requestId = crypto.randomUUID();
+    submittedDetails = details;
+  }
   sending = true;
   const button = contactStep.querySelector('button[type="submit"]');
   const originalLabel = button.innerHTML;
+  const fields = [form.elements.place, ...contactFields];
+  fields.forEach(field => { field.disabled = true; });
   button.disabled = true;
-  document.getElementById('form-back').disabled = true;
   button.textContent = 'Sending your enquiry…';
   feedback.className = 'form-feedback';
   feedback.textContent = '';
@@ -70,27 +79,36 @@ form.addEventListener('submit', async (event) => {
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ place, bedrooms, name, contact, website: form.elements.website.value }),
-      signal: AbortSignal.timeout(20000)
+      body: JSON.stringify({ ...payload, requestId }),
+      signal: AbortSignal.timeout(40000)
     });
     const result = await response.json();
     if (!response.ok || result.ok !== true) throw new Error(response.status === 429 ? 'rate' : 'send');
-    step = 'success';
+    complete = true;
+    propertyStep.hidden = true;
     contactStep.hidden = true;
     document.querySelector('.form-intro').hidden = true;
     const success = document.getElementById('success-step');
     success.hidden = false;
-    document.getElementById('success-message').textContent = `Thank you, ${name}. We will follow up using ${contact}.`;
+    document.getElementById('success-message').textContent = `Thank you, ${name}. We have your request for ${place} and will follow up at ${email} or ${phone}.`;
     success.focus();
   } catch (error) {
     feedback.className = 'form-feedback error';
     feedback.textContent = error.message === 'rate' ? 'Too many attempts. Please try again later, or call us at 704-902-5644.' : 'We could not confirm your enquiry was sent. Please try again, or call 704-902-5644.';
   } finally {
     sending = false;
-    button.disabled = false;
-    document.getElementById('form-back').disabled = false;
+    fields.forEach(field => { field.disabled = complete; });
+    button.disabled = complete;
     button.innerHTML = originalLabel;
   }
+});
+
+if (form.elements.place.value.trim()) expandLetter();
+window.addEventListener('pageshow', () => { if (form.elements.place.value.trim()) expandLetter(); });
+document.getElementById('earnings-cta').addEventListener('click', event => {
+  event.preventDefault();
+  card.scrollIntoView({ block: 'start' });
+  if (!complete) form.elements.place.focus({ preventScroll: true });
 });
 
 const privacy = document.getElementById('privacy-dialog');
