@@ -137,6 +137,7 @@ function setupEnquiry(form) {
       const result = await response.json();
       if (!response.ok || result.ok !== true) throw new Error(response.status === 429 ? 'rate' : 'send');
       complete = true;
+      window.BSVPixel?.trackLead(form.id);
       if (isStepper) form.querySelector('.hero-flow').hidden = true;
       else { propertyStep.hidden = true; contactStep.hidden = true; }
       const intro = card.querySelector('.form-intro');

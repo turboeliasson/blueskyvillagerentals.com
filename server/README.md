@@ -20,6 +20,40 @@ upstream requests and send no emails or production leads.
 
 Preview the site with `python3 -m http.server 8766 --bind 127.0.0.1`.
 
+## Meta Pixel
+
+Both versions load `pixel.js`, which reads one constant per page. The pixel is off
+until that constant holds the Blue Sky Village dataset (pixel) ID:
+
+- `index.html` line 7: `window.BSV_META_PIXEL_ID = "";`
+- `village/index.html` line 7: `window.BSV_META_PIXEL_ID = "";`
+
+Set the same ID in both files in one feature branch and PR, and bump the `?v=`
+on `pixel.js` in both pages. While the constant is empty nothing loads: no `fbq`,
+no request to connect.facebook.net and no tracking image. There is deliberately no
+`<noscript>` image, because it would have to hardcode the ID and would report a hit
+no enquiry can be attributed to.
+
+With an ID set, each page reports `PageView` on load and one `Lead` per saved
+enquiry, at the point the gateway confirms the save. Validation failures and
+retries report nothing, and the existing duplicate-submit guards (`sent` in A,
+`complete` in B) keep it to one `Lead` per enquiry. Each `Lead` carries the form it
+came from and the website version:
+
+| Version | Form | `content_name` |
+| --- | --- | --- |
+| A | `early-estimate-form` | `early-estimate` |
+| A | `estimate-form` | `estimate` |
+| B | `hero-estimate-form` | `hero` |
+| B | `estimate-form` | `letter` |
+
+Tracking never affects an enquiry. A blocked, missing or failing `fbq` is a no-op,
+so ad blockers change measurement only, never lead delivery. The lead payload,
+fields, request IDs, experiment attribution and recipients are unchanged.
+
+Run `node --test server/pixel.test.mjs` to verify the empty-ID guard, the single
+`Lead` per saved enquiry and the form mapping, with a fake browser and no network.
+
 ## Deploy and roll back
 
 The static site is published by GitHub Pages from `main`. Use a feature branch and
