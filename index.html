@@ -2,6 +2,11 @@
 <html lang="en" data-bsv-variant="A">
 <head>
 <script src="/experiment.js"></script>
+<script>
+// Set to the Blue Sky Village Meta dataset (pixel) ID
+window.BSV_META_PIXEL_ID = "";
+</script>
+<script src="/pixel.js?v=20260911" defer></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#F8F4EC">
@@ -848,6 +853,7 @@ document.querySelectorAll('[data-reveal]').forEach((el,i)=>{ if(RM){el.style.opa
       const result=await r.json();
       if(!r.ok || !result.ok) throw new Error('send failed');
       sent=true;
+      window.BSVPixel?.trackLead(form.id);
       btn.textContent='Request received';
       fb.textContent='Thank you, '+name+'. We’ll get back to you within a day.';
       fb.className='estimate__fb ok';
