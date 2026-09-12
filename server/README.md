@@ -22,11 +22,15 @@ Preview the site with `python3 -m http.server 8766 --bind 127.0.0.1`.
 
 ## Meta Pixel
 
+Draft status, 12 September: the dataset is still unknown and the pixel remains
+disabled. Privacy/tracking controls and Meta event receipt must be completed and
+verified before activating it; filling in an ID alone is not launch readiness.
+
 Both versions load `pixel.js`, which reads one constant per page. The pixel is off
 until that constant holds the Blue Sky Village dataset (pixel) ID:
 
-- `index.html` line 7: `window.BSV_META_PIXEL_ID = "";`
-- `village/index.html` line 7: `window.BSV_META_PIXEL_ID = "";`
+- `index.html`: `window.BSV_META_PIXEL_ID = "";`
+- `village/index.html`: `window.BSV_META_PIXEL_ID = "";`
 
 Set the same ID in both files in one feature branch and PR, and bump the `?v=`
 on `pixel.js` in both pages. While the constant is empty nothing loads: no `fbq`,
@@ -49,7 +53,28 @@ came from and the website version:
 
 Tracking never affects an enquiry. A blocked, missing or failing `fbq` is a no-op,
 so ad blockers change measurement only, never lead delivery. The lead payload,
-fields, request IDs, experiment attribution and recipients are unchanged.
+request IDs, experiment attribution and recipients are retained.
+
+## Ad attribution
+
+Both pages load `attribution.js` and include its allowlisted fields only with a
+submitted enquiry. The gateway independently validates them and saves `utmSource`,
+`utmMedium`, `metaCampaignId`, `metaAdsetId` and `metaAdId` in the existing lead's
+`additionalData`. Meta IDs must be 5-30 digits; source and medium are limited to
+64 letters, digits, dots, underscores or hyphens. Raw URLs, referrers, click IDs,
+unexpanded macros and extra query fields are not retained by this code.
+
+This adds no cookies, browser storage, network calls or Meta events. It records
+the current landing URL's attribution, not attribution across later visits.
+Organic and old cached forms continue to work without attribution. Website A/B
+redirects already preserve query parameters. The website and gateway change must
+both be deployed before live lead attribution can be marked connected.
+
+Use this ad URL parameter template:
+
+```text
+utm_source={{site_source_name}}&utm_medium=paid_social&utm_campaign={{campaign.id}}&utm_term={{adset.id}}&utm_content={{ad.id}}
+```
 
 Run `node --test server/pixel.test.mjs` to verify the empty-ID guard, the single
 `Lead` per saved enquiry and the form mapping, with a fake browser and no network.

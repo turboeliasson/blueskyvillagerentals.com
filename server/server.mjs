@@ -65,6 +65,14 @@ export function createLeadServer(env, request = fetch, experiments = null) {
         }
       }
       const experiment = validExperiment(d.experiment) ? d.experiment : null;
+      const attribution = {};
+      for (const [key, pattern] of Object.entries({
+        utmSource: /^[a-zA-Z0-9_.-]{1,64}$/, utmMedium: /^[a-zA-Z0-9_.-]{1,64}$/,
+        metaCampaignId: /^\d{5,30}$/, metaAdsetId: /^\d{5,30}$/, metaAdId: /^\d{5,30}$/,
+      })) {
+        const value = d.attribution?.[key];
+        if (typeof value === "string" && value === value.trim() && pattern.test(value)) attribution[key] = value;
+      }
       const clean = s => String(s ?? "").replace(/[\r\n]+/g, " ").trim().slice(0, 300);
       const place = clean(d.place), beds = clean(d.bedrooms), name = clean(d.name), contact = clean(d.contact);
       // Older cached pages use a single email-or-phone field.
@@ -90,6 +98,7 @@ export function createLeadServer(env, request = fetch, experiments = null) {
           additionalData: {
             bedrooms: beds, website: "https://blueskyvillagerentals.com/", form: clean(d.form) || "estimate-form",
             ...(experiment ? { experimentId: experiment.id, experimentVariant: experiment.variant } : {}),
+            ...attribution,
           },
         };
         // The create endpoint's Started status is the Lead stage in Growth.

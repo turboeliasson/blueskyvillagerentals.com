@@ -55,6 +55,27 @@ test("a Proptonomy failure returns failure without sending an email", async t =>
   assert.equal(calls, 1);
 });
 
+test("ad attribution reaches the saved lead without retaining unrecognized or invalid values", async t => {
+  const calls = [];
+  const send = await fixture(t, async (url, options) => {
+    calls.push({ url, options });
+    return Response.json({ id: leadId });
+  });
+  const result = await send({ ...data, attribution: {
+    utmSource: "ig", utmMedium: "paid_social", metaCampaignId: "120123456789",
+    metaAdsetId: "120987654321", metaAdId: "120111222333", email: "private@example.com", landingUrl: "https://example.com/private"
+  }});
+  assert.equal(result.status, 200);
+  assert.deepEqual(JSON.parse(calls[0].options.body).additionalData, {
+    bedrooms: "2", website: "https://blueskyvillagerentals.com/", form: "early-estimate-form",
+    utmSource: "ig", utmMedium: "paid_social", metaCampaignId: "120123456789", metaAdsetId: "120987654321", metaAdId: "120111222333"
+  });
+  assert.equal((await send({ ...data, attribution: { metaAdId: "{{ad.id}}", metaCampaignId: "120123456789\n", utmSource: "x".repeat(65), utmMedium: "private@example.com" } })).status, 200);
+  assert.deepEqual(JSON.parse(calls[2].options.body).additionalData, {
+    bedrooms: "2", website: "https://blueskyvillagerentals.com/", form: "early-estimate-form"
+  });
+});
+
 test("an email failure still acknowledges the saved lead", async t => {
   let calls = 0;
   const send = await fixture(t, async () => ++calls === 1

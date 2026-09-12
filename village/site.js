@@ -108,7 +108,7 @@ function setupEnquiry(form) {
     if (isStepper && stepIndex === 2) return showStep(3);
     const digits = phone.replace(/\D/g, '');
     if (!number || phone.length > 30 || !/^\+?[\d\s().-]+$/.test(phone) || digits.length < 8 || digits.length > 15) return showError('Please enter a valid phone number.', form.elements.phone);
-    const payload = { place, name, email, phone, website: form.elements.website.value, form: form.id, ...(window.BSVExperiment?.leadData() || {}) };
+    const payload = { place, name, email, phone, website: form.elements.website.value, form: form.id, ...(window.BSVExperiment?.leadData() || {}), ...(window.BSVAttribution?.leadData() || {}) };
     const details = JSON.stringify(payload);
     if (details !== submittedDetails) {
       requestId = crypto.randomUUID();

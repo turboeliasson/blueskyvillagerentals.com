@@ -2,6 +2,7 @@
 <html lang="en" data-bsv-variant="A">
 <head>
 <script src="/experiment.js"></script>
+<script src="/attribution.js?v=20260912" defer></script>
 <script>
 // Set to the Blue Sky Village Meta dataset (pixel) ID
 window.BSV_META_PIXEL_ID = "";
@@ -849,7 +850,7 @@ document.querySelectorAll('[data-reveal]').forEach((el,i)=>{ if(RM){el.style.opa
     fb.className='estimate__fb';
     try{
       const r=await fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({place,bedrooms:beds,name,email,phone,requestId,form:form.id,website:values.get('website') || '',...(window.BSVExperiment?.leadData() || {})})});
+        body:JSON.stringify({place,bedrooms:beds,name,email,phone,requestId,form:form.id,website:values.get('website') || '',...(window.BSVExperiment?.leadData() || {}),...(window.BSVAttribution?.leadData() || {})})});
       const result=await r.json();
       if(!r.ok || !result.ok) throw new Error('send failed');
       sent=true;
