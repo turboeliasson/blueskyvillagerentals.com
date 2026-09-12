@@ -2,8 +2,8 @@
 
    The dataset (pixel) ID is set per page in window.BSV_META_PIXEL_ID, before this
    file is loaded. While that constant is empty nothing is loaded at all: no fbq,
-   no request to connect.facebook.net and no tracking image. Filling in the ID on
-   both pages is the only change needed to turn measurement on.
+   no request to connect.facebook.net and no tracking image. A valid ID and the
+   visitor's advertising-measurement choice are both required.
 
    There is no <noscript> fallback image on purpose. The ID lives in a script
    constant, so a hardcoded image would both duplicate the ID and send a second
@@ -43,24 +43,72 @@
     const variant = options.variant === 'B' ? 'B' : 'A';
     const names = FORM_CONTENT_NAMES[variant];
     const tracker = { pixelId, variant, active: false, trackLead };
+    const sent = new Set();
+    let initialized = false;
 
     /* No dataset configured yet: load nothing. */
-    if (!pixelId) return tracker;
-    try {
-      loadBaseCode(win, doc);
-      win.fbq('init', pixelId);
-      win.fbq('track', 'PageView');
-      tracker.active = true;
-    } catch (error) {
-      tracker.active = false;
-    }
+    if (!/^\d{5,30}$/.test(pixelId)) return tracker;
+    win.addEventListener('bsv-ad-consent', updateConsent);
+    updateConsent();
     return tracker;
 
-    /* Called once per saved enquiry, where the gateway has confirmed the lead. */
-    function trackLead(formId) {
-      if (!tracker.active || typeof win.fbq !== 'function') return false;
+    function updateConsent() {
+      tracker.active = false;
       try {
-        win.fbq('track', 'Lead', { content_name: names[formId] || formId, variant });
+        if (!win.BSVAdPrivacy?.allowed()) {
+          if (initialized && typeof win.fbq === 'function') win.fbq('consent', 'revoke');
+          return;
+        }
+        if (!safeLocation()) {
+          if (initialized && typeof win.fbq === 'function') win.fbq('consent', 'revoke');
+          return;
+        }
+        loadBaseCode(win, doc);
+        win.fbq('consent', 'grant');
+        if (!initialized) {
+          win.fbq.disablePushState = true;
+          win.fbq('set', 'autoConfig', false, pixelId);
+          win.fbq('init', pixelId);
+          win.fbq('trackSingle', pixelId, 'PageView');
+          initialized = true;
+        }
+        tracker.active = true;
+      } catch (error) {
+        tracker.active = false;
+      }
+    }
+
+    function safeLocation() {
+      // Reject unexpected URL values before loading the SDK or reporting an event.
+      try {
+        const url = new URL(win.location.href);
+        const fields = {
+          utm_source: /^[a-zA-Z0-9_.-]{1,64}$/,
+          utm_medium: /^[a-zA-Z0-9_.-]{1,64}$/,
+          utm_campaign: /^\d{5,30}$/, utm_term: /^\d{5,30}$/, utm_content: /^\d{5,30}$/,
+          fbclid: /^[a-zA-Z0-9_-]{1,500}$/
+        };
+        if (!['', '#contents', '#estimate', '#feature', '#pricing', '#rental-estimate', '#top', '#care', '#main', '#questions', '#village'].includes(url.hash) || !['/', '/village/', '/village/index.html', '/index.html'].includes(url.pathname)) return false;
+        for (const [key, value] of url.searchParams) {
+          if (!fields[key] || value !== value.trim() || !fields[key].test(value)) return false;
+        }
+        if (doc.referrer && (new URL(doc.referrer).search || new URL(doc.referrer).hash)) return false;
+        return true;
+      } catch (_) { return false; }
+    }
+
+    /* Called once per saved enquiry, where the gateway has confirmed the lead. */
+    function trackLead(formId, requestId) {
+      if (!tracker.active || !win.BSVAdPrivacy?.allowed() || typeof win.fbq !== 'function') return false;
+      if (!names[formId] || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestId || '') || sent.has(requestId)) return false;
+      try {
+        if (!safeLocation()) {
+          tracker.active = false;
+          win.fbq('consent', 'revoke');
+          return false;
+        }
+        win.fbq('trackSingle', pixelId, 'Lead', { content_name: names[formId], variant }, { eventID: requestId });
+        sent.add(requestId);
         return true;
       } catch (error) {
         return false;

@@ -15,16 +15,16 @@ sends the existing owner-enquiry email. An email failure does not discard the le
 
 ## Validate
 
-Run `node --test server/server.test.mjs` from the repository root. Tests replace
+Run `node --test server/*.test.mjs` from the repository root. Tests replace
 upstream requests and send no emails or production leads.
 
 Preview the site with `python3 -m http.server 8766 --bind 127.0.0.1`.
 
 ## Meta Pixel
 
-Draft status, 12 September: the dataset is still unknown and the pixel remains
-disabled. Privacy/tracking controls and Meta event receipt must be completed and
-verified before activating it; filling in an ID alone is not launch readiness.
+The dataset is still unknown and the pixel remains disabled. Consent controls,
+withdrawal and successful-save event guards are implemented. Meta event receipt
+must be verified with the actual Blue Sky dataset before activating advertising.
 
 Both versions load `pixel.js`, which reads one constant per page. The pixel is off
 until that constant holds the Blue Sky Village dataset (pixel) ID:
@@ -38,11 +38,18 @@ no request to connect.facebook.net and no tracking image. There is deliberately 
 `<noscript>` image, because it would have to hardcode the ID and would report a hit
 no enquiry can be attributed to.
 
-With an ID set, each page reports `PageView` on load and one `Lead` per saved
-enquiry, at the point the gateway confirms the save. Validation failures and
-retries report nothing, and the existing duplicate-submit guards (`sent` in A,
-`complete` in B) keep it to one `Lead` per enquiry. Each `Lead` carries the form it
-came from and the website version:
+With an ID set, the visitor must explicitly allow advertising measurement before
+the SDK loads or PageView is sent. Advertising privacy in either footer allows
+withdrawal. Choices expire after 180 days; Global Privacy Control and Do Not Track
+keep tracking off. Closing settings is not consent. The enquiry works either way.
+
+After consent, each page reports one PageView and each confirmed saved enquiry
+reports one Lead with its request UUID as eventID. Retries and repeat consent do
+not duplicate events. Earlier enquiries are never replayed after consent. Only
+known page paths, section anchors and validated ad query fields are accepted;
+review overrides and unexpected URL/referrer query data disable tracking. Automatic
+configuration and history-based PageViews are disabled. Each Lead carries the
+allowlisted form name and website version, with no form contact details:
 
 | Version | Form | `content_name` |
 | --- | --- | --- |
