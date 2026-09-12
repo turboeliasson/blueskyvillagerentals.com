@@ -15,10 +15,76 @@ sends the existing owner-enquiry email. An email failure does not discard the le
 
 ## Validate
 
-Run `node --test server/server.test.mjs` from the repository root. Tests replace
+Run `node --test server/*.test.mjs` from the repository root. Tests replace
 upstream requests and send no emails or production leads.
 
 Preview the site with `python3 -m http.server 8766 --bind 127.0.0.1`.
+
+## Meta Pixel
+
+The dataset is still unknown and the pixel remains disabled. Consent controls,
+withdrawal and successful-save event guards are implemented. Meta event receipt
+must be verified with the actual Blue Sky dataset before activating advertising.
+
+Both versions load `pixel.js`, which reads one constant per page. The pixel is off
+until that constant holds the Blue Sky Village dataset (pixel) ID:
+
+- `index.html`: `window.BSV_META_PIXEL_ID = "";`
+- `village/index.html`: `window.BSV_META_PIXEL_ID = "";`
+
+Set the same ID in both files in one feature branch and PR, and bump the `?v=`
+on `pixel.js` in both pages. While the constant is empty nothing loads: no `fbq`,
+no request to connect.facebook.net and no tracking image. There is deliberately no
+`<noscript>` image, because it would have to hardcode the ID and would report a hit
+no enquiry can be attributed to.
+
+With an ID set, the visitor must explicitly allow advertising measurement before
+the SDK loads or PageView is sent. Advertising privacy in either footer allows
+withdrawal. Choices expire after 180 days; Global Privacy Control and Do Not Track
+keep tracking off. Closing settings is not consent. The enquiry works either way.
+
+After consent, each page reports one PageView and each confirmed saved enquiry
+reports one Lead with its request UUID as eventID. Retries and repeat consent do
+not duplicate events. Earlier enquiries are never replayed after consent. Only
+known page paths, section anchors and validated ad query fields are accepted;
+review overrides and unexpected URL/referrer query data disable tracking. Automatic
+configuration and history-based PageViews are disabled. Each Lead carries the
+allowlisted form name and website version, with no form contact details:
+
+| Version | Form | `content_name` |
+| --- | --- | --- |
+| A | `early-estimate-form` | `early-estimate` |
+| A | `estimate-form` | `estimate` |
+| B | `hero-estimate-form` | `hero` |
+| B | `estimate-form` | `letter` |
+
+Tracking never affects an enquiry. A blocked, missing or failing `fbq` is a no-op,
+so ad blockers change measurement only, never lead delivery. The lead payload,
+request IDs, experiment attribution and recipients are retained.
+
+## Ad attribution
+
+Both pages load `attribution.js` and include its allowlisted fields only with a
+submitted enquiry. The gateway independently validates them and saves `utmSource`,
+`utmMedium`, `metaCampaignId`, `metaAdsetId` and `metaAdId` in the existing lead's
+`additionalData`. Meta IDs must be 5-30 digits; source and medium are limited to
+64 letters, digits, dots, underscores or hyphens. Raw URLs, referrers, click IDs,
+unexpanded macros and extra query fields are not retained by this code.
+
+This adds no cookies, browser storage, network calls or Meta events. It records
+the current landing URL's attribution, not attribution across later visits.
+Organic and old cached forms continue to work without attribution. Website A/B
+redirects already preserve query parameters. The website and gateway change must
+both be deployed before live lead attribution can be marked connected.
+
+Use this ad URL parameter template:
+
+```text
+utm_source={{site_source_name}}&utm_medium=paid_social&utm_campaign={{campaign.id}}&utm_term={{adset.id}}&utm_content={{ad.id}}
+```
+
+Run `node --test server/pixel.test.mjs` to verify the empty-ID guard, the single
+`Lead` per saved enquiry and the form mapping, with a fake browser and no network.
 
 ## Deploy and roll back
 

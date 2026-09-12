@@ -108,7 +108,7 @@ function setupEnquiry(form) {
     if (isStepper && stepIndex === 2) return showStep(3);
     const digits = phone.replace(/\D/g, '');
     if (!number || phone.length > 30 || !/^\+?[\d\s().-]+$/.test(phone) || digits.length < 8 || digits.length > 15) return showError('Please enter a valid phone number.', form.elements.phone);
-    const payload = { place, name, email, phone, website: form.elements.website.value, form: form.id, ...(window.BSVExperiment?.leadData() || {}) };
+    const payload = { place, name, email, phone, website: form.elements.website.value, form: form.id, ...(window.BSVExperiment?.leadData() || {}), ...(window.BSVAttribution?.leadData() || {}) };
     const details = JSON.stringify(payload);
     if (details !== submittedDetails) {
       requestId = crypto.randomUUID();
@@ -137,6 +137,7 @@ function setupEnquiry(form) {
       const result = await response.json();
       if (!response.ok || result.ok !== true) throw new Error(response.status === 429 ? 'rate' : 'send');
       complete = true;
+      window.BSVPixel?.trackLead(form.id, requestId);
       if (isStepper) form.querySelector('.hero-flow').hidden = true;
       else { propertyStep.hidden = true; contactStep.hidden = true; }
       const intro = card.querySelector('.form-intro');

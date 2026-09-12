@@ -2,6 +2,14 @@
 <html lang="en" data-bsv-variant="A">
 <head>
 <script src="/experiment.js"></script>
+<script src="/attribution.js?v=20260912" defer></script>
+<script>
+// Set to the Blue Sky Village Meta dataset (pixel) ID
+window.BSV_META_PIXEL_ID = "";
+</script>
+<link rel="stylesheet" href="/ad-privacy.css?v=20260913">
+<script src="/ad-privacy.js?v=20260913" defer></script>
+<script src="/pixel.js?v=20260913" defer></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#F8F4EC">
@@ -590,13 +598,13 @@ img{max-width:100%; height:auto; display:block}
     </div>
   </section>
 
-  <!-- ===================== PULL QUOTE ===================== -->
-  <section class="pull section" aria-label="From an owner">
+  <!-- ===================== OWNER SERVICE ===================== -->
+  <section class="pull section" aria-label="Personal rental management">
     <div class="wrap pull__inner">
       <img class="pull__crest" src="assets/heron-badge.png" width="108" height="130" alt="" data-reveal>
       <div>
-        <blockquote class="pull__q" data-reveal>&ldquo;We stopped checking our phone on weekends. The house is full, and it&rsquo;s never looked better.&rdquo;</blockquote>
-        <p class="pull__cite" data-reveal>Karen R., a homeowner in Mooresville, NC</p>
+        <p class="pull__q" data-reveal>Your home. A personal team to handle the hosting.</p>
+        <p class="pull__cite" data-reveal>Family-run vacation rental management</p>
       </div>
     </div>
   </section>
@@ -744,7 +752,7 @@ img{max-width:100%; height:auto; display:block}
     <a href="https://blueskyvillage.guestybookings.com/" target="_blank" rel="noopener">Book a stay</a>
     <a href="tel:+17049025644">704-902-5644</a>
   </div>
-<p style="text-align:center;font-size:12px;margin:12px 20px"><a href="/privacy.html" style="color:inherit;text-decoration:underline">Privacy and website testing</a></p>
+<p style="text-align:center;font-size:12px;margin:12px 20px"><a href="/privacy.html" style="color:inherit;text-decoration:underline">Privacy and website testing</a> · <button type="button" data-bsv-ad-privacy>Advertising privacy</button></p>
 </footer>
 
 <script>
@@ -844,10 +852,11 @@ document.querySelectorAll('[data-reveal]').forEach((el,i)=>{ if(RM){el.style.opa
     fb.className='estimate__fb';
     try{
       const r=await fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({place,bedrooms:beds,name,email,phone,requestId,form:form.id,website:values.get('website') || '',...(window.BSVExperiment?.leadData() || {})})});
+        body:JSON.stringify({place,bedrooms:beds,name,email,phone,requestId,form:form.id,website:values.get('website') || '',...(window.BSVExperiment?.leadData() || {}),...(window.BSVAttribution?.leadData() || {})})});
       const result=await r.json();
       if(!r.ok || !result.ok) throw new Error('send failed');
       sent=true;
+      window.BSVPixel?.trackLead(form.id, requestId);
       btn.textContent='Request received';
       fb.textContent='Thank you, '+name+'. We’ll get back to you within a day.';
       fb.className='estimate__fb ok';
