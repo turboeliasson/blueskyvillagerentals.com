@@ -103,9 +103,9 @@ test('both versions report the Lead only where the gateway confirmed the save', 
   }
 });
 
-test('both pages carry an empty constant and load the shared pixel file', () => {
+test('both pages use the Blue Sky dataset and load the shared pixel file', () => {
   for (const source of [INDEX_SOURCE, readFileSync(new URL('../village/index.html', import.meta.url), 'utf8')]) {
-    assert.match(source, /\/\/ Set to the Blue Sky Village Meta dataset \(pixel\) ID\nwindow\.BSV_META_PIXEL_ID = "";/);
+    assert.match(source, /\/\/ Set to the Blue Sky Village Meta dataset \(pixel\) ID\nwindow\.BSV_META_PIXEL_ID = "1113214541040969";/);
     assert.match(source, /<script src="\/pixel\.js\?v=\d{8}" defer><\/script>/);
     assert.ok(!source.includes('connect.facebook.net'));
   }
