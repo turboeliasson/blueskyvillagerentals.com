@@ -22,21 +22,7 @@ Preview the site with `python3 -m http.server 8766 --bind 127.0.0.1`.
 
 ## Meta Pixel
 
-The dataset is still unknown and the pixel remains disabled. Consent controls,
-withdrawal and successful-save event guards are implemented. Meta event receipt
-must be verified with the actual Blue Sky dataset before activating advertising.
-
-Both versions load `pixel.js`, which reads one constant per page. The pixel is off
-until that constant holds the Blue Sky Village dataset (pixel) ID:
-
-- `index.html`: `window.BSV_META_PIXEL_ID = "";`
-- `village/index.html`: `window.BSV_META_PIXEL_ID = "";`
-
-Set the same ID in both files in one feature branch and PR, and bump the `?v=`
-on `pixel.js` in both pages. While the constant is empty nothing loads: no `fbq`,
-no request to connect.facebook.net and no tracking image. There is deliberately no
-`<noscript>` image, because it would have to hardcode the ID and would report a hit
-no enquiry can be attributed to.
+Blue Sky Village dataset `1113214541040969` is configured on both homepage versions and the owner pages. Consenting PageView receipt was verified on September 13, 2026. First real Lead receipt remains to be checked.
 
 With an ID set, the visitor must explicitly allow advertising measurement before
 the SDK loads or PageView is sent. Advertising privacy in either footer allows
@@ -71,8 +57,8 @@ submitted enquiry. The gateway independently validates them and saves `utmSource
 64 letters, digits, dots, underscores or hyphens. Raw URLs, referrers, click IDs,
 unexpanded macros and extra query fields are not retained by this code.
 
-This adds no cookies, browser storage, network calls or Meta events. It records
-the current landing URL's attribution, not attribution across later visits.
+This adds no cookies, browser storage, network calls or Meta events. Validated source tags are carried through internal links, including ChatGPT
+`utm_source=chatgpt.com`. They are not stored between visits.
 Organic and old cached forms continue to work without attribution. Website A/B
 redirects already preserve query parameters. The website and gateway change must
 both be deployed before live lead attribution can be marked connected.
@@ -172,3 +158,24 @@ PR. All visitors then see A, including direct `/village/` visits. The explicit
 review links remain available. To undo the release, revert the website PR through
 another PR, restore the backed-up gateway source and drop-in state, daemon-reload
 and restart `bsv-lead`. Retain the experiment log for analysis.
+
+## Regional owner pages
+
+`locations/` and `homeowners/` are static, self-canonical pages outside the homepage
+experiment. `owner-enquiry.js` uses the existing gateway and stable form IDs, which
+are saved in `additionalData.form` for page-level lead analysis. No gateway change
+is required. Owner pages use pixel variant `owners`, with allowlisted form names
+and paths. Consent, URL guards and successful-save deduplication still apply.
+
+The homepage variant at `/village/` canonicals to `/`, without noindex, following
+Google website-testing guidance. Only canonical URLs are listed in `sitemap.xml`.
+
+Keep regional coverage explicit. Do not turn an expansion enquiry into a claimed
+local office, licence or established service without verification. Public municipal
+links were checked September 13, 2026; recheck before changing regulatory statements.
+
+`indexnow-key.txt` is a deliberately public website ownership challenge, not a model
+API credential. After publishing, run `node server/submit-indexnow.mjs` to notify
+participating search engines of the canonical sitemap URLs. A 200/202 response
+confirms receipt, not indexing. Google receives `sitemap.xml` through Search Console.
+The public Google verification tag is present on both homepage variants.

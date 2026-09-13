@@ -158,3 +158,15 @@ test('normal section links work but a changed unsafe URL revokes tracking', () =
   assert.equal(leads(p.calls()).length, 1);
   assert.deepEqual(p.calls().at(-1), ['consent', 'revoke']);
 });
+
+test('owner guides use their own context and preserve consent and unsafe-path guards', () => {
+  const p = loadPixel({ pixelId: '123456789012345', variant: 'owners', allowed: false, href: 'https://blueskyvillagerentals.com/locations/savannah/?utm_source=chatgpt.com#estimate' });
+  assert.equal(p.inserted.length, 0);
+  p.consent(true);
+  assert.equal(p.win.BSVPixel.trackLead('savannah-estimate-form', requestId), true);
+  assert.equal(leads(p.calls())[0][3].variant, 'owners');
+  assert.equal(p.win.BSVPixel.trackLead('estimate-form', secondId), false);
+  for (const href of ['https://blueskyvillagerentals.com/locations/private@example.com/', 'https://blueskyvillagerentals.com/locations/savannah/?email=private@example.com']) {
+    assert.equal(loadPixel({ pixelId: '123456789012345', variant: 'owners', href }).inserted.length, 0);
+  }
+});

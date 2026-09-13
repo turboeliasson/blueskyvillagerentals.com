@@ -18,7 +18,12 @@
   /* Which enquiry form a Lead came from, per website version. */
   const FORM_CONTENT_NAMES = {
     A: { 'early-estimate-form': 'early-estimate', 'estimate-form': 'estimate' },
-    B: { 'hero-estimate-form': 'hero', 'estimate-form': 'letter' }
+    B: { 'hero-estimate-form': 'hero', 'estimate-form': 'letter' },
+    owners: {
+      'savannah-estimate-form': 'savannah', 'folly-beach-estimate-form': 'folly-beach',
+      'ellijay-estimate-form': 'ellijay', 'fees-estimate-form': 'management-fees',
+      'rental-estimate-form': 'rental-estimate', 'switching-estimate-form': 'switching-managers'
+    }
   };
 
   const PIXEL_SRC = 'https://connect.facebook.net/en_US/fbevents.js';
@@ -40,7 +45,7 @@
     const win = options.window;
     const doc = options.document;
     const pixelId = typeof options.pixelId === 'string' ? options.pixelId.trim() : '';
-    const variant = options.variant === 'B' ? 'B' : 'A';
+    const variant = ['B', 'owners'].includes(options.variant) ? options.variant : 'A';
     const names = FORM_CONTENT_NAMES[variant];
     const tracker = { pixelId, variant, active: false, trackLead };
     const sent = new Set();
@@ -88,7 +93,9 @@
           utm_campaign: /^\d{5,30}$/, utm_term: /^\d{5,30}$/, utm_content: /^\d{5,30}$/,
           fbclid: /^[a-zA-Z0-9_-]{1,500}$/
         };
-        if (!['', '#contents', '#estimate', '#feature', '#pricing', '#rental-estimate', '#top', '#care', '#main', '#questions', '#village'].includes(url.hash) || !['/', '/village/', '/village/index.html', '/index.html'].includes(url.pathname)) return false;
+        const paths = ['/', '/village/', '/locations/', '/locations/savannah/', '/locations/folly-beach/', '/locations/ellijay/',
+          '/homeowners/management-fees/', '/homeowners/rental-estimate/', '/homeowners/switching-managers/'];
+        if (!['', '#contents', '#estimate', '#feature', '#pricing', '#rental-estimate', '#top', '#care', '#main', '#questions', '#village'].includes(url.hash) || !paths.includes(url.pathname.replace(/index\.html$/, ''))) return false;
         for (const [key, value] of url.searchParams) {
           if (!fields[key] || value !== value.trim() || !fields[key].test(value)) return false;
         }

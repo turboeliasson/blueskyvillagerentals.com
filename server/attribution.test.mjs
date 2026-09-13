@@ -21,3 +21,14 @@ test("organic, unexpanded macros and arbitrary query values do not create attrib
     assert.deepEqual(read(search), {});
   }
 });
+
+test('source tags survive internal navigation without copying personal queries or tagging external links', () => {
+  const window = { location: { search: '?utm_source=chatgpt.com&utm_content=120123456789&email=private@example.com', href: 'https://blueskyvillagerentals.com/locations/?utm_source=chatgpt.com', origin: 'https://blueskyvillagerentals.com' } };
+  const link = href => ({ href: new URL(href, window.location.href).href, getAttribute: () => href });
+  const links = [link('/locations/savannah/'), link('https://example.com/'), link('#estimate'), link('/homeowners/rental-estimate/?utm_source=existing')];
+  vm.runInNewContext(source, { window, URL, URLSearchParams, document: { readyState: 'complete', querySelectorAll: () => links } });
+  assert.equal(links[0].href, 'https://blueskyvillagerentals.com/locations/savannah/?utm_source=chatgpt.com&utm_content=120123456789');
+  assert.equal(links[1].href, 'https://example.com/');
+  assert.ok(!links[2].href.includes('utm_content'));
+  assert.ok(links[3].href.includes('utm_source=existing'));
+});
