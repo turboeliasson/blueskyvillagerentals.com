@@ -4,7 +4,7 @@ import http from "node:http";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
-import { createExperimentStore, validExperiment } from "./experiments.mjs";
+import { createExperimentStore, validExperiment, validProgress } from "./experiments.mjs";
 
 const PORT = 3950;
 const ORGANIZATION_ID = "3c2d7060-f7c8-47c4-8102-27010603592b";
@@ -47,17 +47,24 @@ export function createLeadServer(env, request = fetch, experiments = null) {
     req.on("end", async () => {
       let d = {};
       try {
-        d = req.headers["content-type"]?.includes("json")
+        // sendBeacon cannot set a JSON content type without a preflight it is unable to make,
+        // so the shape of the body decides, not the header.
+        d = req.headers["content-type"]?.includes("json") || body.trimStart().startsWith("{")
           ? JSON.parse(body)
           : Object.fromEntries(new URLSearchParams(body));
       } catch {}
       if (!d || typeof d !== "object") d = {};
       if (isEvent) {
-        if (!validExperiment(d.experiment) || !["view", "start"].includes(d.event)) {
+        if (!validExperiment(d.experiment) || !["view", "start", "progress"].includes(d.event)) {
           res.writeHead(400); return res.end();
         }
+        // A malformed beacon is dropped whole; nothing is written from a partial payload.
+        if (d.event === "progress" && !validProgress(d.progress)) { res.writeHead(400); return res.end(); }
         try {
-          if (!experiments?.record(d.experiment, d.event)) { res.writeHead(409); return res.end(); }
+          const saved = d.event === "progress"
+            ? experiments?.recordProgress(d.experiment, d.progress)
+            : experiments?.record(d.experiment, d.event);
+          if (!saved) { res.writeHead(409); return res.end(); }
           res.writeHead(204); return res.end();
         } catch (error) {
           console.error("experiment event failed:", error.message);
