@@ -27,4 +27,17 @@ if (process.argv.includes("--json")) {
     if (depth.length) console.log("  fields filled before abandoning: " + depth.map(([n, c]) => `${n}->${c}`).join(", "));
   }
   console.log("\nCharacter counts are bucketed and no field values are recorded. The honeypot is never tracked.");
+
+  console.log("\nFunnel by ad source");
+  if (!result.bySource.length) {
+    console.log("  No visits recorded yet.");
+  } else {
+    console.table(result.bySource.map(row => ({
+      source: row.key, views: row.views, starts: row.starts, leads: row.leads,
+      "start %": row.startPercent, "enquiry %": row.conversionPercent,
+    })));
+    console.log("Source reads utm_source/campaign/adset/ad from the ad link. (none) is everyone who arrived without one.");
+    console.log("Both website versions are counted together here, and a browser stays in the bucket it first arrived in.");
+    console.log("These are browser-side counts: ad blockers and blocked storage under-count them, and a handful of rows decides nothing.");
+  }
 }

@@ -105,8 +105,8 @@ test("honeypots and invalid forms never count as conversions", async t => {
 // ---- form progress: how far someone got, never what they typed ----
 
 const progress = {
-  formId: "early-estimate-form", lastField: "email", filledCount: 2, requiredRemaining: 2,
-  secondsSinceStart: 37, submitted: false, fields: { place: "11-30", name: "4-10", email: "0", bedrooms: "0" },
+  formId: "early-estimate-form", lastField: "email", filledCount: 3, requiredRemaining: 1,
+  secondsSinceStart: 37, submitted: false, fields: { bedrooms: "1-3", area: "4-10", name: "4-10", email: "0" },
 };
 
 test("a beacon records depth and volume, and never a field value or the honeypot", async t => {
@@ -167,7 +167,8 @@ test("a beacon establishes no exposure and leaves the existing summary untouched
   assert.equal((await send({ experiment: assignment("A"), event: "progress", progress }, true)).status, 204);
   assert.equal(readEvents(file).filter(row => ["view", "start", "lead"].includes(row.event)).length, 0);
   const summary = summarizeEvents(readEvents(file));
-  assert.deepEqual(Object.keys(summary), ["experiment", "firstEvent", "variants", "progress"]);
+  assert.deepEqual(Object.keys(summary), ["experiment", "firstEvent", "variants", "progress", "bySource"]);
+  assert.deepEqual(summary.bySource, []);
   assert.deepEqual(summary.variants, [
     { variant: "A", visitors: 0, started: 0, converted: 0, conversionPercent: 0 },
     { variant: "B", visitors: 0, started: 0, converted: 0, conversionPercent: 0 },
@@ -188,8 +189,8 @@ test("progress rows do not disturb the exposure summary the reporting job reads"
   assert.equal(a.beacons, 1);
   assert.equal(a.abandoned, 1);
   assert.equal(a.medianAbandonedSeconds, 37);
-  assert.deepEqual(a.depthHistogram, { 2: 1 });
-  assert.deepEqual(a.forms[0].fields.place, { filled: 1, abandonedHere: 0 });
+  assert.deepEqual(a.depthHistogram, { 3: 1 });
+  assert.deepEqual(a.forms[0].fields.bedrooms, { filled: 1, abandonedHere: 0 });
   assert.deepEqual(a.forms[0].fields.email, { filled: 0, abandonedHere: 1 });
 });
 
