@@ -4,7 +4,7 @@ import http from "node:http";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
-import { createExperimentStore, validExperiment } from "./experiments.mjs";
+import { createExperimentStore, validExperiment, validProgress, validSource } from "./experiments.mjs";
 
 const PORT = 3950;
 const ORGANIZATION_ID = "3c2d7060-f7c8-47c4-8102-27010603592b";
@@ -47,17 +47,26 @@ export function createLeadServer(env, request = fetch, experiments = null) {
     req.on("end", async () => {
       let d = {};
       try {
-        d = req.headers["content-type"]?.includes("json")
+        // sendBeacon cannot set a JSON content type without a preflight it is unable to make,
+        // so the shape of the body decides, not the header.
+        d = req.headers["content-type"]?.includes("json") || body.trimStart().startsWith("{")
           ? JSON.parse(body)
           : Object.fromEntries(new URLSearchParams(body));
       } catch {}
       if (!d || typeof d !== "object") d = {};
       if (isEvent) {
-        if (!validExperiment(d.experiment) || !["view", "start"].includes(d.event)) {
+        if (!validExperiment(d.experiment) || !["view", "start", "progress"].includes(d.event)) {
           res.writeHead(400); return res.end();
         }
+        // A malformed beacon is dropped whole; nothing is written from a partial payload.
+        if (d.event === "progress" && !validProgress(d.progress)) { res.writeHead(400); return res.end(); }
+        // The source is only a label. A bad one costs the event its label, never the event.
+        const source = validSource(d.source);
         try {
-          if (!experiments?.record(d.experiment, d.event)) { res.writeHead(409); return res.end(); }
+          const saved = d.event === "progress"
+            ? experiments?.recordProgress(d.experiment, d.progress, source)
+            : experiments?.record(d.experiment, d.event, source);
+          if (!saved) { res.writeHead(409); return res.end(); }
           res.writeHead(204); return res.end();
         } catch (error) {
           console.error("experiment event failed:", error.message);
@@ -69,17 +78,28 @@ export function createLeadServer(env, request = fetch, experiments = null) {
       for (const [key, pattern] of Object.entries({
         utmSource: /^[a-zA-Z0-9_.-]{1,64}$/, utmMedium: /^[a-zA-Z0-9_.-]{1,64}$/,
         metaCampaignId: /^\d{5,30}$/, metaAdsetId: /^\d{5,30}$/, metaAdId: /^\d{5,30}$/,
+        // Meta's own click id: kept on the lead so a CRM record can be traced back to one ad click.
+        fbclid: /^[A-Za-z0-9_-]{1,255}$/,
       })) {
         const value = d.attribution?.[key];
         if (typeof value === "string" && value === value.trim() && pattern.test(value)) attribution[key] = value;
       }
+      // An ad visitor whose view beacon never arrived still labels their own funnel row here.
+      // fbclid identifies one click, so it stays on the lead and never enters the funnel log.
+      const { fbclid, ...leadSource } = attribution;
       const clean = s => String(s ?? "").replace(/[\r\n]+/g, " ").trim().slice(0, 300);
       const place = clean(d.place), beds = clean(d.bedrooms), name = clean(d.name), contact = clean(d.contact);
       // Older cached pages use a single email-or-phone field.
       const isEmail = s => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s);
       const email = clean(d.email) || (isEmail(contact) ? contact : "");
       const phone = clean(d.phone) || (contact && !isEmail(contact) ? contact : "");
-      if (d.website) { res.writeHead(200, {"Content-Type":"application/json"}); return res.end('{"ok":true}'); } // honeypot
+      // Honeypot. Nearly always a bot, but a password manager fills the off-screen input too,
+      // so say what was dropped and how complete it looked - never a single entered value.
+      if (d.website) {
+        console.log(new Date().toISOString(), "honeypot dropped enquiry; form:", clean(d.form) || "estimate-form",
+          "complete:", Boolean(place && name && (email || phone)));
+        res.writeHead(200, {"Content-Type":"application/json"}); return res.end('{"ok":true}');
+      }
       if (!place || !name || (!email && !phone) || name.length > 200 || email.length > 254 ||
           (email && !isEmail(email)) || (phone && !/^\+?[\d\s().-]{7,30}$/.test(phone))) {
         res.writeHead(400, {"Content-Type":"application/json"}); return res.end('{"ok":false,"error":"missing"}');
@@ -99,6 +119,9 @@ export function createLeadServer(env, request = fetch, experiments = null) {
             bedrooms: beds, website: "https://blueskyvillagerentals.com/", form: clean(d.form) || "estimate-form",
             ...(experiment ? { experimentId: experiment.id, experimentVariant: experiment.variant } : {}),
             ...attribution,
+            // pixel.js sends this same id to Meta as the Lead eventID, so keeping it here is
+            // the only way to match Meta's reported Leads against the records in Growth.
+            ...(requestId ? { requestId } : {}),
           },
         };
         // The create endpoint's Started status is the Lead stage in Growth.
@@ -113,7 +136,8 @@ export function createLeadServer(env, request = fetch, experiments = null) {
         if (!leadId) throw new Error("proptonomy invalid response");
         console.log(new Date().toISOString(), "lead saved:", leadId, "form:", clean(d.form) || "estimate-form");
         if (experiment) {
-          try { experiments?.record(experiment, "lead"); }
+          // The form rides along so the beacon this enquiry ends stops counting as abandoned.
+          try { experiments?.record(experiment, "lead", validSource(leadSource), clean(d.form) || "estimate-form"); }
           catch (error) { console.error("experiment conversion failed:", error.message); }
         }
         const text = [
