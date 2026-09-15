@@ -126,19 +126,87 @@ test('no SDK or event before consent, and withdrawal prevents later leads withou
   assert.equal(p.calls().filter(c => c[2] === 'PageView').length, 1);
 });
 
-test('unconfigured or unsafe URLs and referrers never load Meta', () => {
+test('unconfigured pages, malformed ad tags and unexpected referrers never load Meta', () => {
   for (const options of [
     { pixelId: 'not-a-pixel' },
-    { href: 'https://blueskyvillagerentals.com/?email=private@example.com' },
     { href: 'https://blueskyvillagerentals.com/?utm_content=private@example.com' },
+    { href: 'https://blueskyvillagerentals.com/?utm_source=private@example.com' },
+    { href: 'https://blueskyvillagerentals.com/?utm_campaign=12' },
     { href: 'https://blueskyvillagerentals.com/#private@example.com' },
-    { referrer: 'https://example.com/?email=private@example.com' },
-    { href: 'https://blueskyvillagerentals.com/?bsv_variant=B' }
+    { href: 'https://blueskyvillagerentals.com/private@example.com/' },
+    { referrer: 'https://example.com/?email=private@example.com' }
   ]) {
     const p = loadPixel({ pixelId: '123456789012345', variant: 'A', ...options });
     assert.equal(p.inserted.length, 0);
     assert.equal(p.win.BSVPixel.trackLead('estimate-form', requestId), false);
   }
+});
+
+/* Meta and Instagram append their own parameters to an ad click. Refusing to measure a page
+   over one of those meant the pixel failed closed on ordinary ad traffic, which is the
+   traffic it exists to measure, so each one is tolerated by name. */
+test('a real tagged ad URL and the keys Meta, Instagram and our own review add still load', () => {
+  for (const href of [
+    'https://blueskyvillagerentals.com/?utm_source=ig&utm_medium=paid_social&utm_campaign=120247056115810068&utm_term=120247056118320068&utm_content=120247056163230068&fbclid=IwAR0-test',
+    'https://blueskyvillagerentals.com/?mibextid=abc123',
+    'https://blueskyvillagerentals.com/?igshid=MzRlODBiNWFlZA==',
+    'https://blueskyvillagerentals.com/?igsh=abc123',
+    'https://blueskyvillagerentals.com/?fb_source=share',
+    'https://blueskyvillagerentals.com/?bsv_variant=B'
+  ]) {
+    const p = loadPixel({ pixelId: '123456789012345', variant: 'A', href });
+    assert.equal(p.inserted.length, 1, href);
+    assert.equal(p.win.BSVPixel.active, true, href);
+  }
+});
+
+/* fbq reads window.location itself, so a parameter we merely ignore is still sent to Meta in
+   the PageView. A key we did not anticipate can hold anything - above all the visitor's own
+   details, which our forms put in the query string whenever one submits natively before its
+   handler runs - so an unanticipated key refuses the page instead of being waved through. */
+test('a query key we did not anticipate refuses the page, and a form field always does', () => {
+  for (const href of [
+    'https://blueskyvillagerentals.com/?email=private@example.com',
+    'https://blueskyvillagerentals.com/homeowners/rental-estimate/?place=12+Ocean+Dr&name=Jane+Doe&email=private@example.com&phone=5551234567',
+    'https://blueskyvillagerentals.com/?utm_source=ig&utm_content=120247056163230068&name=Jane+Doe',
+    'https://blueskyvillagerentals.com/?street=12+Ocean+Dr',
+    'https://blueskyvillagerentals.com/?gclid=abc123',
+    'https://blueskyvillagerentals.com/?note=call+me+on+5551234567',
+    /* A tolerated key still only carries an opaque identifier, never free text. */
+    'https://blueskyvillagerentals.com/?mibextid=private@example.com'
+  ]) {
+    const p = loadPixel({ pixelId: '123456789012345', variant: 'owners', href });
+    assert.equal(p.inserted.length, 0, href);
+    assert.equal(p.win.BSVPixel.active, false, href);
+    assert.equal(p.win.BSVPixel.trackLead('rental-estimate-form', requestId), false, href);
+  }
+});
+
+/* attribution.js tags every internal link, so a tagged visitor's next page always has a
+   same-origin referrer carrying those tags. Rejecting it disabled the pixel for the rest
+   of an ad visitor's session, so that referrer is held to the same rule as the page rather
+   than exempted: fbq sends the referrer too, and our own origin is no guarantee that the
+   previous page was not a form posting the visitor's details. */
+test('a same-origin referrer is held to the same query rule, and a cross-origin one to a stricter one', () => {
+  const inside = loadPixel({ pixelId: '123456789012345', variant: 'A',
+    href: 'https://blueskyvillagerentals.com/?utm_source=ig&utm_content=120247056163230068',
+    referrer: 'https://blueskyvillagerentals.com/?utm_source=ig&utm_content=120247056163230068' });
+  assert.equal(inside.inserted.length, 1);
+  assert.equal(inside.win.BSVPixel.trackLead('estimate-form', requestId), true);
+
+  /* A clean page reached from a polluted one of ours still hands Meta that referrer. */
+  for (const referrer of [
+    'https://blueskyvillagerentals.com/?email=private@example.com',
+    'https://blueskyvillagerentals.com/homeowners/rental-estimate/?place=12+Ocean+Dr&name=Jane+Doe&phone=5551234567',
+    'https://example.com/?q=private@example.com'
+  ]) {
+    const p = loadPixel({ pixelId: '123456789012345', variant: 'A', referrer });
+    assert.equal(p.inserted.length, 0, referrer);
+    assert.equal(p.win.BSVPixel.trackLead('estimate-form', requestId), false, referrer);
+  }
+  /* A tolerated key on a same-origin referrer is as acceptable there as on the page. */
+  const shared = loadPixel({ pixelId: '123456789012345', variant: 'A', referrer: 'https://blueskyvillagerentals.com/?mibextid=abc123' });
+  assert.equal(shared.inserted.length, 1);
 });
 
 test('unknown form names and non-random event IDs do not enter event payloads', () => {
@@ -149,14 +217,19 @@ test('unknown form names and non-random event IDs do not enter event payloads', 
 });
 
 
-test('normal section links work but a changed unsafe URL revokes tracking', () => {
+test('normal section links work, and an unsafe URL skips that event without revoking consent', () => {
   const p = loadPixel({ pixelId: '123456789012345', variant: 'A', href: 'https://blueskyvillagerentals.com/#estimate' });
   assert.equal(p.win.BSVPixel.active, true);
   assert.equal(p.win.BSVPixel.trackLead('estimate-form', requestId), true);
-  p.win.location.href = 'https://blueskyvillagerentals.com/?email=private@example.com';
+  p.win.location.href = 'https://blueskyvillagerentals.com/?utm_content=private@example.com';
   assert.equal(p.win.BSVPixel.trackLead('estimate-form', secondId), false);
   assert.equal(leads(p.calls()).length, 1);
-  assert.deepEqual(p.calls().at(-1), ['consent', 'revoke']);
+  assert.notDeepEqual(p.calls().at(-1), ['consent', 'revoke']);
+  /* One bad URL state is not consent withdrawal: a later valid page still reports. */
+  assert.equal(p.win.BSVPixel.active, true);
+  p.win.location.href = 'https://blueskyvillagerentals.com/#estimate';
+  assert.equal(p.win.BSVPixel.trackLead('estimate-form', secondId), true);
+  assert.equal(leads(p.calls()).length, 2);
 });
 
 test('owner guides use their own context and preserve consent and unsafe-path guards', () => {
@@ -166,7 +239,7 @@ test('owner guides use their own context and preserve consent and unsafe-path gu
   assert.equal(p.win.BSVPixel.trackLead('savannah-estimate-form', requestId), true);
   assert.equal(leads(p.calls())[0][3].variant, 'owners');
   assert.equal(p.win.BSVPixel.trackLead('estimate-form', secondId), false);
-  for (const href of ['https://blueskyvillagerentals.com/locations/private@example.com/', 'https://blueskyvillagerentals.com/locations/savannah/?email=private@example.com']) {
+  for (const href of ['https://blueskyvillagerentals.com/locations/private@example.com/', 'https://blueskyvillagerentals.com/locations/savannah/?utm_source=private@example.com']) {
     assert.equal(loadPixel({ pixelId: '123456789012345', variant: 'owners', href }).inserted.length, 0);
   }
 });
