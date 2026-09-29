@@ -10,10 +10,19 @@ function read(search) {
   return JSON.parse(JSON.stringify(window.BSVAttribution.leadData()));
 }
 
-test("keeps only source, medium and stable Meta IDs from a paid landing URL", () => {
-  assert.deepEqual(read("?utm_source=ig&utm_medium=paid_social&utm_campaign=120123456789&utm_term=120987654321&utm_content=120111222333&email=private%40example.com&fbclid=ignored"), {
-    attribution: { utmSource: "ig", utmMedium: "paid_social", metaCampaignId: "120123456789", metaAdsetId: "120987654321", metaAdId: "120111222333" }
+test("keeps source, medium, stable Meta IDs and the click ID from a paid landing URL", () => {
+  assert.deepEqual(read("?utm_source=ig&utm_medium=paid_social&utm_campaign=120123456789&utm_term=120987654321&utm_content=120111222333&email=private%40example.com&fbclid=IwAR0-test_click-ID"), {
+    attribution: { utmSource: "ig", utmMedium: "paid_social", metaCampaignId: "120123456789", metaAdsetId: "120987654321", metaAdId: "120111222333", fbclid: "IwAR0-test_click-ID" }
   });
+});
+
+test("the click ID reaches a saved enquiry but never a funnel event", () => {
+  // fbclid identifies one click. It belongs on the lead, where it lets a Meta-reported
+  // Lead be matched to its CRM record; the funnel log stays aggregate.
+  const window = { location: { search: "?utm_source=fb&utm_content=120111222333&fbclid=IwAR0-test" } };
+  vm.runInNewContext(source, { window, URLSearchParams });
+  assert.equal(window.BSVAttribution.leadData().attribution.fbclid, "IwAR0-test");
+  assert.deepEqual(JSON.parse(JSON.stringify(window.BSVAttribution.sourceData())), { utmSource: "fb", metaAdId: "120111222333" });
 });
 
 test("organic, unexpanded macros and arbitrary query values do not create attribution", () => {

@@ -28,6 +28,44 @@
 
   const PIXEL_SRC = 'https://connect.facebook.net/en_US/fbevents.js';
 
+  /* The ad tags we put on our own links, and the shape each one has to have. */
+  const AD_TAGS = {
+    utm_source: /^[a-zA-Z0-9_.-]{1,64}$/,
+    utm_medium: /^[a-zA-Z0-9_.-]{1,64}$/,
+    utm_campaign: /^\d{5,30}$/, utm_term: /^\d{5,30}$/, utm_content: /^\d{5,30}$/,
+    fbclid: /^[a-zA-Z0-9_-]{1,500}$/
+  };
+  /* Keys that mean nothing to us but are not a reason to stop measuring: Facebook,
+     Instagram and Messenger append these to a shared or in-app link, and bsv_variant is
+     our own review override. Add a key here when a platform starts appending a new one -
+     the alternative, ignoring every unknown key, blesses whatever the URL happens to
+     carry, because fbq reads window.location itself and sends the whole address. */
+  const TOLERATED = ['mibextid', 'igshid', 'igsh', 'fb_source', 'fb_ref', 'bsv_variant'];
+  /* Every name our enquiry forms post. A form that submits natively, before its handler
+     runs, puts the visitor's own name, email and phone in the query string. These can
+     never become a tolerated key, so the check below refuses them explicitly. */
+  const FORM_FIELDS = ['place', 'name', 'email', 'phone', 'street', 'area', 'areaOther',
+    'bedrooms', 'contactBy', 'countryCode', 'website'];
+  /* An opaque identifier: what a tolerated key is allowed to carry, and nothing else. */
+  const TOKEN = /^[A-Za-z0-9_.=-]{1,300}$/;
+  const PATHS = ['/', '/village/', '/locations/', '/locations/savannah/', '/locations/folly-beach/', '/locations/ellijay/',
+    '/homeowners/management-fees/', '/homeowners/rental-estimate/', '/homeowners/switching-managers/'];
+  const HASHES = ['', '#contents', '#estimate', '#feature', '#pricing', '#rental-estimate', '#top', '#care', '#main', '#questions', '#village'];
+
+  /* One rule for a query string, used for our own URL and for a same-origin referrer:
+     a tag we recognise has to look like what we tagged, a key we tolerate has to look
+     like an identifier, and anything else refuses the page. */
+  function safeQuery(params) {
+    for (const [key, value] of params) {
+      if (AD_TAGS[key]) {
+        if (value !== value.trim() || !AD_TAGS[key].test(value)) return false;
+        continue;
+      }
+      if (FORM_FIELDS.includes(key) || !TOLERATED.includes(key) || !TOKEN.test(value)) return false;
+    }
+    return true;
+  }
+
   function loadBaseCode(win, doc) {
     /* Meta Pixel base code, unchanged apart from the injected window and document. */
     !function (f, b, e, v, n, t, s) {
@@ -85,21 +123,21 @@
 
     function safeLocation() {
       // Reject unexpected URL values before loading the SDK or reporting an event.
+      // The page itself has to be one of ours and its query has to pass safeQuery:
+      // fbq reads window.location, so a key we merely ignored would reach Meta anyway.
       try {
         const url = new URL(win.location.href);
-        const fields = {
-          utm_source: /^[a-zA-Z0-9_.-]{1,64}$/,
-          utm_medium: /^[a-zA-Z0-9_.-]{1,64}$/,
-          utm_campaign: /^\d{5,30}$/, utm_term: /^\d{5,30}$/, utm_content: /^\d{5,30}$/,
-          fbclid: /^[a-zA-Z0-9_-]{1,500}$/
-        };
-        const paths = ['/', '/village/', '/locations/', '/locations/savannah/', '/locations/folly-beach/', '/locations/ellijay/',
-          '/homeowners/management-fees/', '/homeowners/rental-estimate/', '/homeowners/switching-managers/'];
-        if (!['', '#contents', '#estimate', '#feature', '#pricing', '#rental-estimate', '#top', '#care', '#main', '#questions', '#village'].includes(url.hash) || !paths.includes(url.pathname.replace(/index\.html$/, ''))) return false;
-        for (const [key, value] of url.searchParams) {
-          if (!fields[key] || value !== value.trim() || !fields[key].test(value)) return false;
+        if (!HASHES.includes(url.hash) || !PATHS.includes(url.pathname.replace(/index\.html$/, ''))) return false;
+        if (!safeQuery(url.searchParams)) return false;
+        /* attribution.js tags our own internal links, so a same-origin referrer carries
+           tags we put there - but its query is no safer than any other, so it meets the
+           same rule. A cross-origin one we cannot vouch for at all, so any query or
+           fragment refuses. A referrer never carries a fragment of its own. */
+        if (doc.referrer) {
+          const referrer = new URL(doc.referrer);
+          if (referrer.origin !== url.origin) { if (referrer.search || referrer.hash) return false; }
+          else if (!safeQuery(referrer.searchParams)) return false;
         }
-        if (doc.referrer && (new URL(doc.referrer).search || new URL(doc.referrer).hash)) return false;
         return true;
       } catch (_) { return false; }
     }
@@ -109,11 +147,10 @@
       if (!tracker.active || !win.BSVAdPrivacy?.allowed() || typeof win.fbq !== 'function') return false;
       if (!names[formId] || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestId || '') || sent.has(requestId)) return false;
       try {
-        if (!safeLocation()) {
-          tracker.active = false;
-          win.fbq('consent', 'revoke');
-          return false;
-        }
+        /* A URL we cannot vouch for means we skip this one event. Consent belongs
+           to the visitor, so an unexpected address is not a reason to throw it
+           away for the rest of the session. */
+        if (!safeLocation()) return false;
         win.fbq('trackSingle', pixelId, 'Lead', { content_name: names[formId], variant }, { eventID: requestId });
         sent.add(requestId);
         return true;

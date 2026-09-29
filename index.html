@@ -1,17 +1,23 @@
 <!DOCTYPE html>
 <html lang="en" data-bsv-variant="A">
 <head>
-<script src="/experiment.js"></script>
-<script src="/attribution.js?v=20260913" defer></script>
+<script src="/experiment.js?v=20260915"></script>
+<script src="/attribution.js?v=20260915" defer></script>
 <script>
 // Set to the Blue Sky Village Meta dataset (pixel) ID
 window.BSV_META_PIXEL_ID = "1113214541040969";
+// An ad click was promised an estimate, so paid traffic gets the enquiry before the cover.
+// Set here, before the first paint. Without it the page keeps its cover-first order.
+try {
+  if (new URLSearchParams(location.search).get("utm_medium") === "paid_social")
+    document.documentElement.dataset.bsvPaid = "1";
+} catch (e) {}
 </script>
-<link rel="stylesheet" href="/ad-privacy.css?v=20260913">
-<script src="/ad-privacy.js?v=20260913" defer></script>
-<script src="/pixel.js?v=20260913" defer></script>
+<link rel="stylesheet" href="/ad-privacy.css?v=20260915">
+<script src="/ad-privacy.js?v=20260915" defer></script>
+<script src="/pixel.js?v=20260915" defer></script>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#F8F4EC">
 <title>Blue Sky Village · Vacation Rental Management, the Carolinas &amp; Georgia</title>
 <meta name="description" content="Family-run vacation rental management across North Carolina, South Carolina and Georgia since 2013. We list it, price it, clean it, and look after your guests.">
@@ -104,21 +110,26 @@ img{max-width:100%; height:auto; display:block}
 .skip:focus{left:0}
 
 /* ---- floating nav (translucent masthead bar) ---- */
+/* viewport-fit=cover is kept: the cover photo and the grain are full-bleed, and .enquiry
+   already pays out env(safe-area-inset-bottom). The cost is that the fixed nav would sit
+   under the notch, so it pays the insets back, the same way .earn does for paid traffic. */
 .nav{position:fixed; top:0; left:0; right:0; z-index:200; display:flex; align-items:center; justify-content:space-between;
-  gap:16px; padding:14px clamp(20px,5vw,48px);
+  gap:16px;
+  padding:calc(14px + env(safe-area-inset-top,0px)) calc(clamp(20px,5vw,48px) + env(safe-area-inset-right,0px))
+          14px calc(clamp(20px,5vw,48px) + env(safe-area-inset-left,0px));
   background:rgba(248,244,236,0); backdrop-filter:blur(0px); box-shadow:0 0 0 0 transparent;
   transition:background-color .4s var(--ease), backdrop-filter .4s var(--ease), box-shadow .4s var(--ease)}
-.nav.is-stuck{background:rgba(248,244,236,.86); backdrop-filter:blur(10px); box-shadow:0 6px 24px rgba(31,43,52,.07)}
+.nav.is-stuck,html[data-bsv-paid] .nav{background:rgba(248,244,236,.86); backdrop-filter:blur(10px); box-shadow:0 6px 24px rgba(31,43,52,.07)}
 .nav__brand{display:flex; align-items:center; gap:11px; text-decoration:none; color:var(--cream); transition:color .4s var(--ease)}
-.nav.is-stuck .nav__brand{color:var(--ink)}
+.nav.is-stuck .nav__brand,html[data-bsv-paid] .nav__brand{color:var(--ink)}
 .nav__crest{width:30px; height:36px; object-fit:contain; flex:none; filter:drop-shadow(0 1px 4px rgba(31,43,52,.4))}
-.nav.is-stuck .nav__crest{filter:none}
+.nav.is-stuck .nav__crest,html[data-bsv-paid] .nav__crest{filter:none}
 .nav__word{font-family:var(--font-display); font-size:1.02rem; letter-spacing:0; font-weight:480; white-space:nowrap}
 .nav__links{display:flex; align-items:center; gap:26px; color:var(--cream); transition:color .4s var(--ease)}
-.nav.is-stuck .nav__links{color:var(--ink)}
+.nav.is-stuck .nav__links,html[data-bsv-paid] .nav__links{color:var(--ink)}
 .nav__link{font-family:var(--font-body); font-size:.95rem; letter-spacing:0; color:inherit; text-decoration:none; opacity:.92;
   text-shadow:0 1px 8px rgba(31,43,52,.5); transition:text-shadow .4s var(--ease)}
-.nav.is-stuck .nav__link{text-shadow:none; opacity:.82}
+.nav.is-stuck .nav__link,html[data-bsv-paid] .nav__link{text-shadow:none; opacity:.82}
 .nav__link:hover{opacity:1}
 .nav .btn{padding:10px 20px; font-size:.92rem}
 .nav__cta-short{display:none}
@@ -135,7 +146,8 @@ img{max-width:100%; height:auto; display:block}
 /* =========================================================
    COVER - full-bleed photo, masthead arched over the sky
    ========================================================= */
-.cover{position:relative; min-height:100svh; min-height:100vh; display:flex; flex-direction:column;
+/* svh last so it wins: 100vh overshoots the visual viewport in the Facebook in-app browser. */
+.cover{position:relative; min-height:100vh; min-height:100svh; display:flex; flex-direction:column;
   justify-content:space-between; overflow:hidden; isolation:isolate; background:var(--ink-deep)}
 .cover__img{position:absolute; inset:0; z-index:-2}
 .cover__img img{width:100%; height:100%; object-fit:cover; object-position:50% 62%;
@@ -371,17 +383,6 @@ img{max-width:100%; height:auto; display:block}
 .earn__intro{margin:0 0 18px; color:var(--accent-deep); font-size:.94rem; font-weight:560}
 .earn h2{font-size:clamp(2rem,3.6vw,3rem); max-width:16ch; line-height:1.12}
 .earn__sub{margin:22px 0 0; color:var(--ink-2); max-width:38ch}
-.earn__form{min-width:0; width:100%; margin:0; padding:4px}
-.earn .field label{color:var(--ink-2)}
-.earn .field input,.earn .field select{background:var(--surface); color:var(--ink); border:1px solid var(--line); padding:14px 16px}
-.earn .field input::placeholder{color:var(--ink-2); opacity:.8}
-.earn .field input:focus,.earn .field select:focus{border-color:var(--accent-deep); box-shadow:0 0 0 3px var(--accent-wash)}
-.earn .earn__address input{font-size:1.125rem; min-height:64px}
-.earn__details[hidden]{display:none}
-.earn__details .field--row{grid-template-columns:1fr 1fr; gap:18px}
-.earn__form .btn{width:100%; justify-content:center; margin-top:8px; min-height:56px}
-.earn__hint,.earn .estimate__micro{color:var(--muted); margin:16px 0 0; font-size:.94rem}
-.earn .estimate__micro{text-align:center; font-size:.86rem}
 .earn .estimate__fb{margin-bottom:0}
 .earn .estimate__fb:empty{display:none}
 .earn .estimate__fb.ok{color:#365E41}
@@ -393,10 +394,77 @@ img{max-width:100%; height:auto; display:block}
   .earn__panel{grid-template-columns:1fr; gap:32px}
   .earn h2{max-width:20ch}
   .earn__sub{max-width:48ch; margin-top:18px}
-  .earn__form{padding:4px; margin-inline:-4px; width:calc(100% + 8px)}
 }
-@media (max-width:600px){
-  .earn__details .field--row{grid-template-columns:1fr; gap:0}
+
+/* stepped owner enquiry - one question at a time, and the first thing paid traffic sees */
+.enquiry{display:grid; gap:24px; min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:14px;
+  padding:clamp(20px,4vw,30px); padding-bottom:max(16px,env(safe-area-inset-bottom,0px))}
+/* The advertising notice is a viewport-FIXED overlay, so no margin on the card can move a step
+   out from under it. Reserve the band on the SCROLL CONTAINER instead: that is what
+   scrollIntoView reads, so a revealed step stops above the notice rather than behind it. */
+html{scroll-padding-block-end:var(--bsv-notice-clear,0px)}
+/* the fixed nav is opaque for paid traffic, so the recap and the thank-you keep clear of it */
+.qstep,.qdone{min-width:0; scroll-margin-block-start:104px}
+.qstep[hidden],.qfield[hidden],.qdone[hidden],.enquiry--done .qstep{display:none}
+.qstep:focus,.qdone:focus,.earn:focus{outline:none}
+.qstep:focus-visible,.qdone:focus-visible{outline:none; box-shadow:0 0 0 3px var(--accent-wash),0 0 0 1px var(--accent-deep); border-radius:10px}
+.qgroup{min-width:0; border:0; margin:0; padding:0}
+.qgroup--sub{margin-top:20px}
+.qgroup__q{display:block; padding:0; font-family:var(--font-display); font-weight:400; color:var(--ink);
+  font-size:clamp(1.3rem,2.4vw,1.6rem); line-height:1.18; letter-spacing:-.014em}
+.qgroup__help{margin:10px 0 0; color:var(--ink-2); font-size:.96rem; max-width:48ch}
+.chips{display:flex; flex-wrap:wrap; gap:10px; margin-top:16px}
+.chips--stack{flex-direction:column; flex-wrap:nowrap}
+/* the input covers its chip: the whole 52px target is the radio, on any browser */
+.chip{position:relative; display:block; flex:1 1 auto; min-width:62px}
+.chip--grow{flex-basis:132px}
+.chip input{position:absolute; inset:0; width:100%; height:100%; margin:0; opacity:0; cursor:pointer}
+.chip__t{display:flex; align-items:center; justify-content:center; min-height:52px; padding:12px 18px; text-align:center;
+  background:var(--bg); border:1px solid var(--line-sage); border-radius:var(--pill); font-size:1.0625rem; line-height:1.2;
+  transition:background-color .2s var(--ease), border-color .2s var(--ease)}
+.chips--stack .chip__t{justify-content:flex-start; text-align:left; padding:14px 20px}
+.chip input:checked~.chip__t{background:var(--accent); border-color:var(--accent-deep); font-weight:560}
+.chip input:focus-visible~.chip__t{box-shadow:0 0 0 3px var(--accent-wash),0 0 0 1px var(--accent-deep)}
+.seg{display:flex; gap:4px; margin-top:12px; padding:4px; background:var(--bg); border:1px solid var(--line-sage); border-radius:var(--pill)}
+.seg .chip{flex:1 1 0; min-width:0}
+.seg .chip__t{min-height:48px; padding:10px 12px; background:transparent; border-color:transparent; font-size:1rem}
+.qfield{margin-top:20px; min-width:0}
+.qfield label,.qfield__lab{display:block; padding:0; margin-bottom:8px; color:var(--ink-2); font-size:.94rem}
+.qfield .qgroup__help{margin:0 0 10px}
+/* 17px keeps iOS from zooming on focus; the scroll margin keeps the fixed nav off the field */
+.qfield input{width:100%; min-height:52px; padding:14px 16px; scroll-margin-block-start:104px;
+  font-family:var(--font-body); font-size:1.0625rem; color:var(--ink);
+  background:var(--bg); border:1px solid var(--line); border-radius:10px}
+.qfield input::placeholder{color:var(--muted)}
+.qfield input:focus{outline:none; border-color:var(--accent-deep); box-shadow:0 0 0 3px var(--accent-wash)}
+.qfield input[aria-invalid="true"]{border-color:var(--error)}
+.qrecap{margin:0; font-family:var(--font-display); font-weight:400; font-size:clamp(1.2rem,2.2vw,1.45rem);
+  line-height:1.24; letter-spacing:-.012em}
+.qrecap:empty{display:none}
+.qsay{margin:12px 0 0; color:var(--ink-2); font-size:1rem; max-width:52ch}
+.qnote{margin:22px 0 0; color:var(--ink-2); font-size:.94rem; max-width:52ch}
+.qnote+.qfield{margin-top:10px}
+.enquiry .btn{width:100%; justify-content:center; min-height:56px; margin-top:24px; touch-action:manipulation}
+.qmicro{margin:14px auto 0; color:var(--muted); font-size:.88rem; text-align:center}
+.qcall{margin:0; text-align:center; font-size:.95rem; color:var(--ink-2)}
+.qcall a{display:inline-flex; align-items:center; min-height:48px; touch-action:manipulation}
+.qstatus{margin:0; font-size:.95rem; scroll-margin-block-start:104px}
+.qdone h3{margin:0; font-family:var(--font-display); font-weight:400; letter-spacing:-.014em;
+  font-size:clamp(1.5rem,2.8vw,1.9rem); line-height:1.16}
+.qdone p{margin:14px 0 0; color:var(--ink-2); font-size:1rem; max-width:52ch}
+
+/* An ad click promised an estimate, so paid traffic meets the enquiry before the cover.
+   Nothing here applies until the head script sets the flag, so the cover-first magazine
+   order stays the default and the fallback. */
+html[data-bsv-paid] body{display:flex; flex-direction:column}
+html[data-bsv-paid] .earn{order:-1; padding-block-start:calc(84px + env(safe-area-inset-top,0px))}
+
+@media (max-width:860px){
+  /* On a phone the notice is as wide as the card, so it can cover a whole step. This is the
+     standing reservation until clearNotice() measures the notice it actually rendered. */
+  @supports selector(:has(*)){
+    html:has(.bsv-ad-notice){--bsv-notice-clear:min(45dvh,244px)}
+  }
 }
 
 /* footer */
@@ -411,7 +479,7 @@ img{max-width:100%; height:auto; display:block}
 <meta name="google-site-verification" content="Mj8fxBlfhqG1Czk2sBNmAcIOoN76JecYEtWfvD5x9W0">
 </head>
 <body>
-<a class="skip" href="#feature">Skip to content</a>
+<a class="skip" href="#rental-estimate">Skip to content</a>
 
 <!-- ===================== NAV ===================== -->
 <nav class="nav" id="nav" aria-label="Primary">
@@ -454,62 +522,112 @@ img{max-width:100%; height:auto; display:block}
   <div class="scrollcue" aria-hidden="true"><span>Scroll</span><svg class="chev" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 6l5 5 5-5"/></svg></div>
 </header>
 
-<main id="feature">
-
-  <!-- ===================== RENTAL ESTIMATE ===================== -->
-  <section class="earn" id="rental-estimate" aria-labelledby="earn-h">
-    <div class="wrap">
-      <div class="earn__panel">
-        <div class="earn__lead">
-          <p class="earn__intro">Your free estimate</p>
-          <h2 id="earn-h">See what your home <span class="hl">could earn.</span></h2>
-          <p class="earn__sub">A free rental estimate from the family-run team caring for homes across the Carolinas and Georgia.</p>
-        </div>
-        <form class="earn__form" id="early-estimate-form" data-estimate-form novalidate>
-          <div class="field earn__address">
-            <label for="early-place">Property address or town</label>
-            <input id="early-place" name="place" type="text" autocomplete="street-address" maxlength="300"
-                   placeholder="Your property address or town" aria-controls="early-details" aria-describedby="early-hint" required>
-          </div>
-          <p class="earn__hint" id="early-hint">Start with your address. We&rsquo;ll take it from there.</p>
-          <div class="earn__details" id="early-details">
-            <div class="field--row">
-              <div class="field">
-                <label for="early-name">Your name</label>
-                <input id="early-name" name="name" type="text" autocomplete="name" maxlength="200" placeholder="Your full name" required>
-              </div>
-              <div class="field">
-                <label for="early-phone">Phone <span>(optional)</span></label>
-                <input id="early-phone" name="phone" type="tel" autocomplete="tel" maxlength="30" placeholder="+1 (704) 555-0123">
-              </div>
-            </div>
-            <div class="field--row">
-              <div class="field">
-                <label for="early-email">Email</label>
-                <input id="early-email" name="email" type="email" autocomplete="email" maxlength="254" placeholder="you@example.com" required>
-              </div>
-              <div class="field">
-                <label for="early-beds">Bedrooms</label>
-                <select id="early-beds" name="bedrooms" required>
-                  <option value="" disabled selected>Select bedrooms</option>
-                  <option value="1">1 bedroom</option>
-                  <option value="2">2 bedrooms</option>
-                  <option value="3">3 bedrooms</option>
-                  <option value="4">4 bedrooms</option>
-                  <option value="5">5+ bedrooms</option>
-                </select>
-              </div>
-            </div>
-            <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"
-                   style="position:absolute;left:-9999px;height:0;width:0;border:0;padding:0">
-            <button class="btn btn-primary" type="submit">Get my free rental estimate</button>
-            <p class="estimate__micro">Free, no obligation. A real person will review your home.</p>
-          </div>
-          <p class="estimate__fb" role="status" aria-live="polite"></p>
-        </form>
+<!-- ===================== RENTAL ESTIMATE =====================
+     Sits outside <main> so that putting it above the cover for paid traffic is a plain
+     reorder of the body's children. It is its own labelled region in either order. -->
+<section class="earn" id="rental-estimate" aria-labelledby="earn-h" tabindex="-1">
+  <div class="wrap">
+    <div class="earn__panel">
+      <div class="earn__lead">
+        <p class="earn__intro">Your free estimate</p>
+        <h2 id="earn-h">See what your home <span class="hl">could earn.</span></h2>
+        <p class="earn__sub">A free rental estimate from the family-run team caring for homes across the Carolinas and Georgia.</p>
       </div>
+      <form class="enquiry" id="early-estimate-form" data-estimate-form novalidate>
+
+        <div class="qstep" id="q-beds" tabindex="-1">
+          <fieldset class="qgroup" aria-describedby="q-beds-help">
+            <legend class="qgroup__q">How many bedrooms?</legend>
+            <p class="qgroup__help" id="q-beds-help">Bedrooms shape what a home earns here more than anything else, so it&rsquo;s the first thing we look at.</p>
+            <div class="chips">
+              <label class="chip"><input type="radio" name="bedrooms" value="1"><span class="chip__t">1</span></label>
+              <label class="chip"><input type="radio" name="bedrooms" value="2"><span class="chip__t">2</span></label>
+              <label class="chip"><input type="radio" name="bedrooms" value="3"><span class="chip__t">3</span></label>
+              <label class="chip"><input type="radio" name="bedrooms" value="4"><span class="chip__t">4</span></label>
+              <label class="chip chip--grow"><input type="radio" name="bedrooms" value="5"><span class="chip__t">5 or more</span></label>
+            </div>
+          </fieldset>
+        </div>
+
+        <div class="qstep" id="q-area" tabindex="-1" hidden>
+          <fieldset class="qgroup" id="q-area-group" aria-describedby="q-area-help" disabled>
+            <legend class="qgroup__q">Where is it?</legend>
+            <p class="qgroup__help" id="q-area-help">Close enough is fine. We&rsquo;ll confirm the exact spot when we talk.</p>
+            <div class="chips chips--stack">
+              <label class="chip"><input type="radio" name="area" value="savannah"><span class="chip__t">Savannah area</span></label>
+              <label class="chip"><input type="radio" name="area" value="folly-beach"><span class="chip__t">Folly Beach area</span></label>
+              <label class="chip"><input type="radio" name="area" value="other"><span class="chip__t">Somewhere else</span></label>
+            </div>
+            <div class="qfield" id="q-area-other" hidden>
+              <label for="early-area-other">Town and state</label>
+              <p class="qgroup__help" id="q-area-other-help">We manage homes around Savannah and Folly Beach and we&rsquo;re growing. Tell us where yours is and we&rsquo;ll be straight with you about whether we can help.</p>
+              <input id="early-area-other" name="areaOther" type="text" maxlength="120" placeholder="Bluffton, SC"
+                     autocomplete="address-level2" enterkeyhint="next" aria-describedby="q-area-other-help" disabled>
+            </div>
+          </fieldset>
+        </div>
+
+        <div class="qstep" id="q-send" tabindex="-1" hidden>
+          <p class="qrecap" id="q-recap"></p>
+          <p class="qsay">We&rsquo;ll look at what comparable homes nearby are actually booking and come back with a real number, not a guess. We&rsquo;re not going to put an earnings figure on your screen now - we can&rsquo;t get one right from a town name.</p>
+          <fieldset class="qgroup" id="q-send-group" disabled>
+            <legend class="qgroup__q">Where should we send it?</legend>
+            <div class="qfield">
+              <label for="early-name">Your name</label>
+              <input id="early-name" name="name" type="text" maxlength="200" placeholder="First and last"
+                     autocomplete="name" enterkeyhint="next" required>
+            </div>
+            <fieldset class="qgroup qgroup--sub">
+              <legend class="qfield__lab">How should we reach you?</legend>
+              <div class="seg">
+                <label class="chip"><input type="radio" name="contactBy" value="email" checked><span class="chip__t">Email</span></label>
+                <label class="chip"><input type="radio" name="contactBy" value="phone"><span class="chip__t">Text or call</span></label>
+              </div>
+            </fieldset>
+            <!-- Not required in the markup: the gateway asks for email OR phone, the form is
+                 novalidate, and validate() is the only authority here. A disabled required
+                 control would also leave the progress beacon permanently short of zero. -->
+            <div class="qfield" id="q-email">
+              <label for="early-email">Email address</label>
+              <input id="early-email" name="email" type="email" inputmode="email" autocomplete="email"
+                     autocapitalize="none" spellcheck="false" maxlength="254" placeholder="you@example.com"
+                     enterkeyhint="done">
+            </div>
+            <div class="qfield" id="q-phone" hidden>
+              <label for="early-phone">Phone number</label>
+              <input id="early-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel"
+                     maxlength="30" placeholder="(912) 555-0123" enterkeyhint="done" disabled>
+            </div>
+            <p class="qnote" id="q-street-note">If you&rsquo;d rather not give your address to people you&rsquo;ve just met, the town is plenty to start with. It only makes the estimate sharper.</p>
+            <div class="qfield">
+              <label for="early-street">Street address (optional)</label>
+              <input id="early-street" name="street" type="text" maxlength="160" placeholder="123 Oak Street"
+                     autocomplete="street-address" enterkeyhint="done" aria-describedby="q-street-note">
+            </div>
+            <button class="btn btn-primary" type="submit">Get my free estimate</button>
+            <p class="qmicro">Free, with no obligation. We use your details to answer this enquiry and nothing else.</p>
+            <p class="qcall">Rather talk it through? <a href="tel:+17049025644">Call us on 704-902-5644.</a></p>
+          </fieldset>
+        </div>
+
+        <!-- A filled honeypot is discarded by the gateway, so keep password managers out of it. -->
+        <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"
+               data-lpignore="true" data-1p-ignore
+               style="position:absolute;left:-9999px;height:0;width:0;border:0;padding:0">
+
+        <div class="qdone" id="early-done" tabindex="-1" hidden>
+          <h3 data-done-h>Thank you.</h3>
+          <p data-done-body></p>
+          <p>If you&rsquo;d rather talk sooner, we&rsquo;re on <a href="tel:+17049025644">704-902-5644</a>. Have the street address to hand and we can be a lot more exact.</p>
+        </div>
+
+        <p class="estimate__fb qstatus" role="status" aria-live="polite"></p>
+      </form>
     </div>
-  </section>
+  </div>
+</section>
+
+<main id="feature">
 
   <!-- ===================== FEATURE OPENER ===================== -->
   <section class="section opener" aria-labelledby="opener-deck">
@@ -738,7 +856,9 @@ img{max-width:100%; height:auto; display:block}
           <input id="f-phone" name="phone" type="tel" autocomplete="tel" maxlength="30"
                  placeholder="+1 (704) 555-0123">
         </div>
+        <!-- A filled honeypot is discarded by the gateway, so keep password managers out of it. -->
         <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"
+               data-lpignore="true" data-1p-ignore
                style="position:absolute;left:-9999px;height:0;width:0;border:0;padding:0">
         <button class="btn btn-primary" type="submit">See what your home could earn</button>
         <p class="estimate__micro">Free, no obligation. We&rsquo;ll tell you honestly if your home isn&rsquo;t a fit.</p>
@@ -785,38 +905,247 @@ document.querySelectorAll('[data-reveal]').forEach((el,i)=>{ if(RM){el.style.opa
   }
 })();
 
-/* ---- address-first estimate, shared with the footer form ---- */
+/* ---- owner enquiry: the stepped form at the top, the letter form in the closing band ---- */
 (function(){
   const ENDPOINT='https://photo.proptonomy.ai/bsv-lead';
-  const address=document.getElementById('early-place');
-  const details=document.getElementById('early-details');
-  const hint=document.getElementById('early-hint');
-  const earlyForm=document.getElementById('early-estimate-form');
-  let expansion;
-  function showDetails(animate=true){
-    if(!details.hidden) return;
-    const start=earlyForm.getBoundingClientRect().height;
-    details.hidden=false;
-    hint.hidden=true;
-    if(!animate || RM) return;
-    const end=earlyForm.getBoundingClientRect().height;
-    const easing=getComputedStyle(document.documentElement).getPropertyValue('--ease').trim();
-    earlyForm.style.overflow='clip';
-    expansion=earlyForm.animate({height:[start+'px',end+'px']},{duration:600,easing});
-    details.animate({opacity:[0,1],transform:['translateY(12px)','translateY(0)']},
-      {duration:460,delay:80,easing,fill:'backwards'});
-    expansion.onfinish=()=>{earlyForm.style.overflow='';expansion=null;};
+  const EMAIL=/^[^@\s]+@[^@\s]+\.[^@\s]+$/;   /* the gateway's own test, so we fail here, not there */
+  const PHONE=/^\+?[\d\s().-]{7,30}$/;
+
+  function setStatus(form,text,state){
+    const fb=form.querySelector('.estimate__fb');
+    if(!fb) return;
+    fb.textContent=text;
+    fb.classList.remove('ok','err');
+    if(state) fb.classList.add(state);
   }
-  function revealDetails(){
-    if(address.value.trim()) showDetails();
-  }
-  details.hidden=!address.value.trim();
-  hint.hidden=!details.hidden;
-  address.addEventListener('input',revealDetails);
-  address.addEventListener('change',revealDetails);
-  window.addEventListener('pageshow',revealDetails);
+
+  /* One question at a time, for the visitor an ad just sent here. */
+  /* If this controller throws, the page must still be able to send an enquiry: without the
+     handlers below, a submit becomes a native GET that puts the visitor's own details in the
+     address bar and saves nothing. */
+  let stepped=null;
+  try{ stepped=(function(){
+    /* Scheduled before anything that can throw. However badly the rest of this goes,
+       nobody is left looking at one question with no way on. It is cancelled at the bottom
+       of this function, because un-stepping a form the controller is driving would take the
+       status line, the nudge to the next question and the recap down with it. */
+    const net=setTimeout(()=>{
+      document.querySelectorAll('#early-estimate-form .qstep[hidden]').forEach(step=>{
+        step.hidden=false;
+        step.querySelectorAll('fieldset[disabled]').forEach(group=>{ group.disabled=false; });
+      });
+      try{ refreshRecap(); }catch(error){}
+    },6000);
+
+    const form=document.getElementById('early-estimate-form');
+    if(!form) return null;
+    const areaStep=document.getElementById('q-area');
+    const areaGroup=document.getElementById('q-area-group');
+    const otherField=document.getElementById('q-area-other');
+    const otherInput=document.getElementById('early-area-other');
+    const sendStep=document.getElementById('q-send');
+    const sendGroup=document.getElementById('q-send-group');
+    const nameInput=document.getElementById('early-name');
+    const emailField=document.getElementById('q-email');
+    const emailInput=document.getElementById('early-email');
+    const phoneField=document.getElementById('q-phone');
+    const phoneInput=document.getElementById('early-phone');
+    const streetInput=document.getElementById('early-street');
+    const recap=document.getElementById('q-recap');
+    const done=document.getElementById('early-done');
+
+    function picked(name){ return form.querySelector('input[name="'+name+'"]:checked'); }
+    function chipText(input){ return input.closest('.chip').querySelector('.chip__t').textContent.trim(); }
+    function bedsPhrase(){
+      const beds=picked('bedrooms');
+      if(!beds) return '';
+      return beds.value==='5' ? 'home with 5 or more bedrooms' : beds.value+'-bedroom';
+    }
+    /* "Savannah area" is what goes on the record; "the Savannah area" is what reads in a sentence. */
+    function areaLabel(){
+      const area=picked('area');
+      if(!area) return '';
+      return area.value==='other' ? otherInput.value.trim() : chipText(area);
+    }
+    function areaPhrase(){
+      const area=picked('area');
+      if(!area) return '';
+      return area.value==='other' ? otherInput.value.trim() : 'the '+chipText(area);
+    }
+    function refreshRecap(){
+      const beds=bedsPhrase(), where=areaPhrase();
+      recap.textContent=beds && where ? 'A '+beds+' in '+where+'.' : '';
+    }
+    function nudge(el){ el.scrollIntoView({block:'nearest',behavior:RM?'auto':'smooth'}); }
+    function openStep(step,group){
+      if(!step.hidden) return false;
+      step.hidden=false;
+      if(group) group.disabled=false;
+      return true;
+    }
+    /* moveFocus is false when the step was opened by typing: pulling focus out of a text
+       field mid-sentence closes the keyboard and loses the visitor's place. */
+    function revealSend(moveFocus){
+      if(!openStep(sendStep,sendGroup)) return;
+      refreshRecap();
+      setStatus(form,recap.textContent);
+      if(moveFocus){ sendStep.focus({preventScroll:true}); nudge(sendStep); }
+    }
+    function applyArea(){
+      const area=picked('area');
+      const other=!!area && area.value==='other';
+      otherField.hidden=!other;
+      otherInput.disabled=!other;
+      otherInput.required=other;
+      return area;
+    }
+    /* The field we are not using leaves both the payload and constraint validation, which is
+       what the gateway's "at least one of email or phone" is really asking for. */
+    function applyContact(){
+      const wantsPhone=picked('contactBy')?.value==='phone';
+      emailField.hidden=wantsPhone; emailInput.disabled=wantsPhone;
+      phoneField.hidden=!wantsPhone; phoneInput.disabled=!wantsPhone;
+    }
+
+    /* An arrow key picks a radio just by moving through the group, so following every change
+       with focus would eject a keyboard visitor before they have heard the other options.
+       A tap or a click has no group to stay in, so that answer still carries them onward. */
+    let byPointer=false;
+    ['pointerdown','mousedown','touchstart'].forEach(type=>
+      form.addEventListener(type,()=>{ byPointer=true; },true));
+    form.addEventListener('keydown',()=>{ byPointer=false; },true);
+
+    form.addEventListener('change',event=>{
+      const name=event.target.name;
+      const moveOn=byPointer;   /* the status region announces the new step either way */
+      if(name==='bedrooms' && openStep(areaStep,areaGroup)){
+        setStatus(form,'Thanks. Next, where is the home?');
+        if(moveOn){ areaStep.focus({preventScroll:true}); nudge(areaStep); }
+      }
+      if(name==='area'){
+        const area=applyArea();
+        if(area && area.value==='other'){
+          setStatus(form,'Tell us the town and state.');
+          if(moveOn) nudge(otherField);
+        }else{
+          revealSend(moveOn);
+        }
+      }
+      if(name==='contactBy') applyContact();
+      if(!sendStep.hidden) refreshRecap();
+    });
+
+    /* enterkeyhint only labels the key: Enter in a text field still submits the form, and from
+       a field that is not the last one that submits an enquiry nobody has finished. Here it
+       moves to the next control instead, and only the "done" fields keep the native submit. */
+    form.addEventListener('keydown',event=>{
+      const field=event.target;
+      if(event.key!=='Enter' || event.isComposing) return;
+      if(field.tagName!=='INPUT' || field.getAttribute('enterkeyhint')!=='next') return;
+      event.preventDefault();
+      const controls=[...form.querySelectorAll('input,select,textarea,button')]
+        .filter(el=>!el.disabled && el.tabIndex>-1 && el.type!=='radio' && el.offsetParent);
+      const at=controls.indexOf(field);
+      if(at>-1 && controls[at+1]) controls[at+1].focus();
+    });
+    form.addEventListener('input',event=>{
+      if(event.target===otherInput && otherInput.value.trim()) revealSend(false);
+      if(!sendStep.hidden) refreshRecap();
+    });
+
+    function clearInvalid(fields){
+      fields.forEach(field=>{ field.setCustomValidity(''); field.removeAttribute('aria-invalid'); });
+    }
+    function invalid(fields,message){
+      fields.forEach(field=>{
+        field.setAttribute('aria-invalid','true');
+        field.addEventListener('input',()=>clearInvalid(fields),{once:true});
+        field.addEventListener('change',()=>clearInvalid(fields),{once:true});
+      });
+      fields[0].setCustomValidity(message);
+      setStatus(form,message,'err');
+      fields[0].reportValidity();
+      return false;
+    }
+    function group(name){ return [...form.querySelectorAll('input[name="'+name+'"]')]; }
+    function validate(){
+      clearInvalid([...form.querySelectorAll('input')]);   /* each attempt starts clean */
+      if(!picked('bedrooms')) return invalid(group('bedrooms'),'Pick a bedroom count to get started.');
+      const area=picked('area');
+      if(!area) return invalid(group('area'),'Let us know roughly where the home is.');
+      if(area.value==='other' && !otherInput.value.trim())
+        return invalid([otherInput],'Let us know roughly where the home is.');
+      if(!nameInput.value.trim()) return invalid([nameInput],'We\u2019d like to know who we\u2019re writing to.');
+      /* An empty field is not a wrong answer. Telling someone the email they never typed
+         looks wrong is how a stray Enter earns a red border and a browser bubble. */
+      if(!emailInput.disabled){
+        const email=emailInput.value.trim();
+        if(!email) return invalid([emailInput],'We need an email address to send the estimate to.');
+        if(!EMAIL.test(email)) return invalid([emailInput],'That email doesn\u2019t look quite right. Could you check it?');
+      }
+      if(!phoneInput.disabled){
+        const phone=phoneInput.value.trim();
+        if(!phone) return invalid([phoneInput],'We need a number to text or call you on.');
+        if(!PHONE.test(phone)) return invalid([phoneInput],'That number doesn\u2019t look quite right. Could you check it?');
+      }
+      return true;
+    }
+    /* The gateway wants one address line, so the street and the area become one. */
+    function place(){
+      const label=areaLabel(), street=streetInput.value.trim();
+      return street ? street+', '+label : label;
+    }
+    function success(lead){
+      document.activeElement?.blur();   /* put the keyboard away before the card changes under it */
+      form.classList.add('enquiry--done');
+      done.querySelector('[data-done-h]').textContent='Thank you, '+lead.name.split(/\s+/)[0]+'.';
+      done.querySelector('[data-done-body]').textContent='We have your '+bedsPhrase()+' in '+areaPhrase()+
+        '. We\u2019ll go through what comparable homes nearby are booking and come back to you at '+
+        (lead.email || lead.phone)+' within one business day.';
+      done.hidden=false;
+      setStatus(form,'');
+      /* the steps' own scroll margin, so the thank-you does not open behind the fixed nav */
+      done.focus({preventScroll:true});
+      nudge(done);
+    }
+
+    /* ad-privacy.css pins its notice to the bottom of the screen, wide enough on a phone to
+       cover a whole step. Reserve exactly as much of the scrollport as it actually takes, on
+       the scroll container, which is where scrollIntoView reads it. */
+    const root=document.documentElement;
+    function clearNotice(){
+      const notice=document.querySelector('.bsv-ad-notice');
+      /* Gone: hand the band back to the stylesheet instead of pinning a stale 0px over it. */
+      if(!notice){ root.style.removeProperty('--bsv-notice-clear'); return; }
+      const bar=notice.getBoundingClientRect(), card=form.getBoundingClientRect();
+      const overlaps=bar.left<card.right && bar.right>card.left;
+      root.style.setProperty('--bsv-notice-clear', overlaps ? Math.round(bar.height+24)+'px' : '0px');
+    }
+    /* The consent event is dispatched before the notice is removed, so a measurement taken
+       inside the event still sees a notice that is on its way out. Measure again after this
+       task as well, so the reservation is right whichever order those two ever run in. */
+    function remeasureNotice(){ clearNotice(); setTimeout(clearNotice,0); }
+    /* A reload or a step back can restore answers; the steps holding them have to come back too. */
+    function sync(){
+      if(picked('bedrooms')) openStep(areaStep,areaGroup);
+      const area=applyArea();
+      if(area && (area.value!=='other' || otherInput.value.trim())) openStep(sendStep,sendGroup);
+      applyContact();
+      if(!sendStep.hidden) refreshRecap();
+      clearNotice();
+    }
+    sync();
+    /* ad-privacy.js is deferred, so its notice only exists from DOMContentLoaded onwards. */
+    if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',clearNotice);
+    window.addEventListener('pageshow',sync);
+    window.addEventListener('resize',clearNotice);
+    window.addEventListener('bsv-ad-consent',remeasureNotice);
+    clearTimeout(net);   /* wired up: the controller runs the steps from here, net not needed */
+    return { form, place, validate, success };
+  })(); }catch(error){ stepped=null; }
 
   document.querySelectorAll('[data-estimate-form]').forEach(form=>{
+  const steps=stepped && stepped.form===form ? stepped : null;
   const fb=form.querySelector('.estimate__fb');
   let requestId;
   let sent=false;
@@ -825,48 +1154,73 @@ document.querySelectorAll('[data-reveal]').forEach((el,i)=>{ if(RM){el.style.opa
   form.addEventListener('submit',async (ev)=>{
     ev.preventDefault();
     if(sending || sent) return;
-    if(form.id==='early-estimate-form'){
-      showDetails(false);
-      expansion?.finish();
-      details.getAnimations().forEach(animation=>animation.finish());
-    }
     const values=new FormData(form);
-    const place=String(values.get('place') || '').trim();
     const beds=String(values.get('bedrooms') || '');
     const name=String(values.get('name') || '').trim();
     const email=String(values.get('email') || '').trim();
     const phone=String(values.get('phone') || '').trim();
-    if(!form.reportValidity() || !place || !name){
-      fb.textContent='Please add your home, bedrooms, name, and email.';
-      fb.className='estimate__fb err';
-      return;
-    }
-    if(phone && !/^\+?[\d\s().-]{7,30}$/.test(phone)){
-      fb.textContent='Please check your phone number, including the country code.';
-      fb.className='estimate__fb err';
-      form.elements.phone.focus();
-      return;
+    /* The stepped form has no place input - it composes one. Read the chips directly so a
+       failed controller still produces a valid enquiry instead of an empty address. */
+    const chipPlace=()=>{
+      const area=form.querySelector('input[name="area"]:checked');
+      if(!area) return '';
+      const label=area.value==='other'
+        ? String(values.get('areaOther') || '').trim()
+        : (area.closest('.chip')?.querySelector('.chip__t')?.textContent || '').trim();
+      const street=String(values.get('street') || '').trim();
+      return label && street ? street+', '+label : label;
+    };
+    const place=steps ? steps.place()
+      : (String(values.get('place') || '').trim() || chipPlace());
+    if(steps){
+      if(!steps.validate()) return;
+    }else{
+      if(!form.reportValidity() || !place || !name){
+        setStatus(form,'Please add where your home is, your name, and an email or phone number.','err');
+        return;
+      }
+      if(phone && !PHONE.test(phone)){
+        setStatus(form,'Please check your phone number, including the country code.','err');
+        form.elements.phone.focus();
+        return;
+      }
     }
     const btn=form.querySelector('button[type=submit]');
+    const label=btn.textContent;
     requestId=requestId || crypto.randomUUID();
     sending=true;
+    /* The button only. Disabling the field they are standing in throws focus to <body>,
+       drops the keyboard and scrolls the page, and on a failure they have lost their place. */
     btn.disabled=true;
-    fb.textContent='Sending…';
-    fb.className='estimate__fb';
+    if(steps) btn.textContent='Sending\u2026';
+    setStatus(form,'Sending\u2026');
+    let rateLimited=false;
     try{
       const r=await fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({place,bedrooms:beds,name,email,phone,requestId,form:form.id,website:values.get('website') || '',...(window.BSVExperiment?.leadData() || {}),...(window.BSVAttribution?.leadData() || {})})});
-      const result=await r.json();
+      const result=await r.json().catch(()=>({}));
+      rateLimited=r.status===429;   /* the gateway's own back-off deserves different words */
       if(!r.ok || !result.ok) throw new Error('send failed');
       sent=true;
       window.BSVPixel?.trackLead(form.id, requestId);
-      btn.textContent='Request received';
-      fb.textContent='Thank you, '+name+'. We’ll get back to you within a day.';
-      fb.className='estimate__fb ok';
-    }catch(e){
+      /* Send the funnel row now, while the page is still open to send it. */
+      form.dispatchEvent(new Event('bsv-submitted'));
+      if(steps) steps.success({name,email,phone});
+      else{
+        btn.textContent='Request received';
+        setStatus(form,'Thank you, '+name+'. We\u2019ll get back to you within a day.','ok');
+      }
+    }catch(error){
       btn.disabled=false;
-      fb.innerHTML='We couldn’t submit your request. Please try again, email <a href="mailto:blueskyvillagerentals@gmail.com" style="color:inherit">blueskyvillagerentals@gmail.com</a>, or call 704-902-5644.';
-      fb.className='estimate__fb err';
+      if(steps){
+        btn.textContent=label;
+        setStatus(form, rateLimited
+          ? 'That\u2019s a few attempts in a short time. Give it a moment, or call us on 704-902-5644.'
+          : 'We couldn\u2019t confirm that reached us. Please try again, or call us on 704-902-5644.','err');
+      }else{
+        fb.innerHTML='We couldn\u2019t submit your request. Please try again, email <a href="mailto:blueskyvillagerentals@gmail.com" style="color:inherit">blueskyvillagerentals@gmail.com</a>, or call 704-902-5644.';
+        fb.className='estimate__fb err';
+      }
     }finally{
       sending=false;
     }

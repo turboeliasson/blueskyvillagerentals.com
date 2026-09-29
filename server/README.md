@@ -25,16 +25,42 @@ Preview the site with `python3 -m http.server 8766 --bind 127.0.0.1`.
 Blue Sky Village dataset `1113214541040969` is configured on both homepage versions and the owner pages. Consenting PageView receipt was verified on September 13, 2026. First real Lead receipt remains to be checked.
 
 With an ID set, the visitor must explicitly allow advertising measurement before
-the SDK loads or PageView is sent. Advertising privacy in either footer allows
-withdrawal. Choices expire after 180 days; Global Privacy Control and Do Not Track
-keep tracking off. Closing settings is not consent. The enquiry works either way.
+the SDK loads or PageView is sent. Both answers are one tap on the first notice:
+`Allow measurement` and `Keep it off` sit side by side, neither preselected.
+Advertising privacy in either footer allows withdrawal. Choices expire after 180
+days; Global Privacy Control and Do Not Track keep tracking off and are recorded
+as a refusal, so an earlier yes cannot revive when the signal is switched off.
+Closing settings is not consent. The enquiry works either way.
+
+`MEASUREMENT_DEFAULT` in `ad-privacy.js` is the posture, shipped as `'off'`
+(prior opt-in, unchanged). Setting it to `'on'` makes an undecided visitor
+allowed, which is the ordinary US opt-out pattern for this audience and is a
+deliberate decision for the site owner, not a code cleanup. GPC/DNT stay an
+absolute veto in either mode. The comment beside the constant lists the
+visitor-facing text that must change with it.
 
 After consent, each page reports one PageView and each confirmed saved enquiry
 reports one Lead with its request UUID as eventID. Retries and repeat consent do
-not duplicate events. Earlier enquiries are never replayed after consent. Only
-known page paths, section anchors and validated ad query fields are accepted;
-review overrides and unexpected URL/referrer query data disable tracking. Automatic
-configuration and history-based PageViews are disabled. Each Lead carries the
+not duplicate events. Earlier enquiries are never replayed after consent.
+
+`safeLocation()` accepts only known page paths and section anchors. Its query rule
+has three outcomes, because `fbq` reads `window.location` itself and an ignored
+parameter still reaches Meta inside the URL: the recognised ad tags in `AD_TAGS`
+are validated; a short `TOLERATED` list of third-party parameters Meta, Instagram
+and Facebook actually append (plus the site's own review override) is ignored but
+still shape-checked; anything else disables tracking for that page view. Every
+name the site's own forms post is refused explicitly, so a native GET submission
+can never hand Meta a visitor's address, name, email or phone. A same-origin
+referrer's query is held to the same rule, which is what lets a tagged ad visitor
+keep measurement across internal links; a cross-origin referrer carrying any query
+or fragment still disables tracking. An unsafe URL at submit time skips that one
+event and does not revoke consent for the session.
+
+Adding a query parameter the site reads, or a new form field, means updating
+`TOLERATED` / `FORM_FIELDS` in `pixel.js` in the same change - otherwise the pixel
+silently refuses that page. Tagging ads with `utm_id`, or landing traffic with
+`gclid`, would switch measurement off today. Never add a posted field name to
+`TOLERATED`. Automatic configuration and history-based PageViews are disabled. Each Lead carries the
 allowlisted form name and website version, with no form contact details:
 
 | Version | Form | `content_name` |
@@ -52,8 +78,14 @@ request IDs, experiment attribution and recipients are retained.
 
 Both pages load `attribution.js` and include its allowlisted fields only with a
 submitted enquiry. The gateway independently validates them and saves `utmSource`,
-`utmMedium`, `metaCampaignId`, `metaAdsetId` and `metaAdId` in the existing lead's
-`additionalData`. Meta IDs must be 5-30 digits; source and medium are limited to
+`utmMedium`, `metaCampaignId`, `metaAdsetId`, `metaAdId` and `fbclid` in the
+existing lead's `additionalData`, alongside `requestId`.
+
+`fbclid` is Meta's per-click identifier. It stays on the lead, where it is what
+lets one CRM record be traced back to one ad click, and it never enters a funnel
+event - `validSource` admits only the five utm-derived keys. `requestId` is the
+same UUID `pixel.js` sends to Meta as the Lead `eventID`, so it is the join key
+between "Meta reports N Leads" and "the CRM holds M records". Meta IDs must be 5-30 digits; source and medium are limited to
 64 letters, digits, dots, underscores or hyphens. Raw URLs, referrers, click IDs,
 unexpanded macros and extra query fields are not retained by this code.
 
@@ -110,8 +142,9 @@ A/B attribution adds `experimentId` and `experimentVariant` to Proptonomy's
 not send the browser UUID to Proptonomy or email. Review enquiries remain normal
 unattributed enquiries, so do not submit test leads to production.
 
-`POST /bsv-lead?event=experiment` accepts only `view` and `start` events from allowed
-website origins. The service records `lead` only after Proptonomy confirms the save.
+`POST /bsv-lead?event=experiment` accepts `view`, `start` and `progress` events from
+allowed website origins, each with an optional validated `source` naming the ad that
+sent the visitor. The service records `lead` only after Proptonomy confirms the save.
 Events use a separate rate allowance from enquiries. A start implies a view;
 a saved enquiry implies a view and start if a browser event was blocked.
 A visitor counts once per event and version, including after a service restart.
@@ -120,9 +153,18 @@ total submissions. Phone calls, guest bookings, JavaScript-disabled visitors and
 review links are outside this measurement. Ad blockers and storage clearing may
 affect measurement. This compares the complete versions, including their forms.
 
-Records contain only experiment ID, version, random browser UUID, event and time.
-They are stored in `/var/lib/bsv-lead/experiments.jsonl`, mode 0600, outside the
-public website. The systemd drop-in `/etc/systemd/system/bsv-lead.service.d/experiment.conf`
+Records contain experiment ID, version, random browser UUID, event and time, plus
+an optional `source` (the validated utm/Meta ad identifiers, never `fbclid` and
+never a personal field) and, on a `lead` row, the form id it came from. Rows written
+before this - the whole existing log - carry no source and no form, load unchanged,
+and are reported in the `(none)` bucket. They are stored in
+`/var/lib/bsv-lead/experiments.jsonl`, mode 0600, outside the public website.
+
+A visitor still counts once per event and version in the A/B table, but a browser
+whose first rows were unlabelled may gain one labelled twin of a milestone when it
+later arrives from an ad - otherwise its ad click would have no row to carry the
+label and would vanish from the per-ad funnel. Both summaries count unique browser
+UUIDs, so the extra row inflates nothing. The systemd drop-in `/etc/systemd/system/bsv-lead.service.d/experiment.conf`
 contains:
 
 ```ini
@@ -141,6 +183,29 @@ ssh root@94.130.75.45 'node /opt/bsv-lead/report.mjs'
 ssh root@94.130.75.45 'node /opt/bsv-lead/report.mjs --json'
 ```
 
+## Funnel by ad source
+
+`report.mjs` ends with a `Funnel by ad source` table: one row per distinct
+source/campaign/ad set/ad, with unique browsers at view, start and enquiry, and the
+rates between them. Unattributed browsers group into `(none)`, sorted last. A
+browser belongs to exactly one bucket, fixed by the first row that carried a label,
+so a visitor who later clicks a second ad is not double counted and is not moved.
+
+This is the number to compare against Meta's own delivery figures, and it will not
+match them. It counts browsers that ran our JavaScript and could write to storage;
+Meta counts clicks. Ad blockers, private windows and blocked storage under-count
+here and not there, and the gap is widest in exactly the in-app browsers this
+traffic arrives in. Treat a shortfall against Meta's link clicks as measurement
+loss, not as bot traffic, and do not decide anything on a handful of rows.
+
+Paid traffic (`utm_medium=paid_social`) is served `/` with no redirect and is
+recorded under version A, so the ad test is not split across two pages and an ad
+click does not pay for a second navigation inside a slow in-app browser. A browser
+that already held a B assignment is re-issued a fresh browser UUID under A on its
+first paid visit, because the log keeps one UUID to one version for life. That
+browser therefore appears as a new browser in the ad funnel; its earlier B rows are
+left untouched.
+
 Do not declare a winner from a handful of leads. Compare conversion rates alongside
 lead quality in Growth, checking sample balance and allowing complete business
 weeks before deciding. No automatic winner or traffic reallocation is configured.
@@ -149,7 +214,11 @@ Run `node --test server/*.test.mjs` to verify attribution, event isolation,
 persistence, deduplication and failure handling with mocked upstream requests.
 
 Deploy `server.mjs`, `experiments.mjs` and `report.mjs` together after backing up
-the existing gateway. Install the state-directory drop-in, run `systemctl daemon-reload`
+the existing gateway - `server.mjs` imports `validSource` and `validForm` from
+`experiments.mjs`, so a partial upload stops the service from booting at link time.
+Deploy the gateway BEFORE merging the website PR: the old gateway ignores the new
+`source` field rather than rejecting it, so nothing breaks either way, but every
+funnel row written in between loses its ad label permanently. Install the state-directory drop-in, run `systemctl daemon-reload`
 and restart only `bsv-lead`. Deploy this backwards-compatible gateway before merging
 the website PR. Keep the existing `.env` in place.
 

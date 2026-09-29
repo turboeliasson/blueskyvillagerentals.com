@@ -138,6 +138,8 @@ function setupEnquiry(form) {
       if (!response.ok || result.ok !== true) throw new Error(response.status === 429 ? 'rate' : 'send');
       complete = true;
       window.BSVPixel?.trackLead(form.id, requestId);
+      /* Send the funnel row now, while the page is still open to send it. */
+      form.dispatchEvent(new Event('bsv-submitted'));
       if (isStepper) form.querySelector('.hero-flow').hidden = true;
       else { propertyStep.hidden = true; contactStep.hidden = true; }
       const intro = card.querySelector('.form-intro');
