@@ -24,20 +24,19 @@ Preview the site with `python3 -m http.server 8766 --bind 127.0.0.1`.
 
 Blue Sky Village dataset `1113214541040969` is configured on both homepage versions and the owner pages. Consenting PageView receipt was verified on September 13, 2026. First real Lead receipt remains to be checked.
 
-With an ID set, the visitor must explicitly allow advertising measurement before
-the SDK loads or PageView is sent. Both answers are one tap on the first notice:
-`Allow measurement` and `Keep it off` sit side by side, neither preselected.
-Advertising privacy in either footer allows withdrawal. Choices expire after 180
-days; Global Privacy Control and Do Not Track keep tracking off and are recorded
-as a refusal, so an earlier yes cannot revive when the signal is switched off.
-Closing settings is not consent. The enquiry works either way.
+With an ID set, measurement follows the ordinary US opt-out pattern
+(`MEASUREMENT_DEFAULT = 'on'`, chosen 29 September 2026): an undecided visitor is
+measured, and the first notice says so and offers `OK` and `Turn it off`, one tap
+each. Advertising privacy in either footer changes the choice later. Answers are kept
+in localStorage, else sessionStorage for the tab, and expire after 180 days. A
+browser that can store neither cannot keep a refusal, so it falls back to opt-in:
+nothing is measured unless it allows it on that page. Global Privacy Control and Do
+Not Track keep tracking off in every mode and are recorded as a refusal, so an
+earlier yes cannot revive when the signal is switched off. The enquiry works either way.
 
-`MEASUREMENT_DEFAULT` in `ad-privacy.js` is the posture, shipped as `'off'`
-(prior opt-in, unchanged). Setting it to `'on'` makes an undecided visitor
-allowed, which is the ordinary US opt-out pattern for this audience and is a
-deliberate decision for the site owner, not a code cleanup. GPC/DNT stay an
-absolute veto in either mode. The comment beside the constant lists the
-visitor-facing text that must change with it.
+Setting `MEASUREMENT_DEFAULT` back to `'off'` restores prior opt-in; privacy.html's
+"Advertising and measurement" section must then be rewritten to match.
+`node --test server/ad-privacy.test.mjs` covers both postures.
 
 After consent, each page reports one PageView and each confirmed saved enquiry
 reports one Lead with its request UUID as eventID. Retries and repeat consent do
