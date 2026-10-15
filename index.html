@@ -132,14 +132,14 @@ img{max-width:100%; height:auto; display:block}
 .nav.is-stuck .nav__link,html[data-bsv-paid] .nav__link{text-shadow:none; opacity:.82}
 .nav__link:hover{opacity:1}
 .nav .btn{padding:10px 20px; font-size:.92rem}
-.nav__cta-short{display:none}
+.nav__actions{display:flex; align-items:center; gap:20px; color:var(--cream)}
+.nav.is-stuck .nav__actions,html[data-bsv-paid] .nav__actions{color:var(--ink)}
 @media (max-width:860px){ .nav__links .nav__link{display:none} }
 @media (max-width:600px){
   .nav{gap:10px}
   .nav__links{display:none}
   .nav .btn{padding:10px 16px; white-space:nowrap; font-size:.86rem}
-  .nav__cta-long{display:none}
-  .nav__cta-short{display:inline}
+  .nav__estimate{display:none}
   .nav__word{font-size:.94rem}
 }
 
@@ -475,7 +475,7 @@ html[data-bsv-paid] .earn{order:-1; padding-block-start:calc(84px + env(safe-are
 /* generic reveal default state handled by JS; ensure no-JS shows content */
 .nojs-safe{opacity:1}
 </style>
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Organization", "@id": "https://blueskyvillagerentals.com/#organization", "name": "Blue Sky Village", "url": "https://blueskyvillagerentals.com/", "logo": "https://blueskyvillagerentals.com/assets/heron-badge.png", "telephone": "+1-704-902-5644", "email": "blueskyvillagerentals@gmail.com"}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Organization", "@id": "https://blueskyvillagerentals.com/#organization", "name": "Blue Sky Village", "url": "https://blueskyvillagerentals.com/", "logo": "https://blueskyvillagerentals.com/assets/heron-badge.png", "telephone": "+1-704-902-5644", "email": "admin@blueskyvillagerentals.com"}</script>
 <meta name="google-site-verification" content="Mj8fxBlfhqG1Czk2sBNmAcIOoN76JecYEtWfvD5x9W0">
 </head>
 <body>
@@ -491,9 +491,11 @@ html[data-bsv-paid] .earn{order:-1; padding-block-start:calc(84px + env(safe-are
     <a class="nav__link" href="#feature">The Story</a>
     <a class="nav__link" href="#contents">What We Handle</a>
     <a class="nav__link" href="/locations/">Locations</a>
-    <a class="nav__link" href="https://blueskyvillage.guestybookings.com/" target="_blank" rel="noopener">Book a stay</a>
   </div>
-  <a class="btn btn-primary" href="#rental-estimate"><span class="nav__cta-long">See what your home could earn</span><span class="nav__cta-short">Free estimate</span></a>
+  <div class="nav__actions">
+    <a class="nav__link nav__estimate" href="#rental-estimate">Free rental estimate</a>
+    <a class="btn btn-primary" href="https://blueskyvillage.guestybookings.com/" target="_blank" rel="noopener">Book a stay ↗</a>
+  </div>
 </nav>
 
 <!-- ===================== COVER ===================== -->
@@ -818,7 +820,7 @@ html[data-bsv-paid] .earn{order:-1; padding-block-start:calc(84px + env(safe-are
         <p class="closing__sub" data-reveal>A free, no-obligation estimate. We&rsquo;ll tell you honestly if your home isn&rsquo;t a fit.</p>
         <div class="closing__contact" data-reveal>
           <div class="cline"><span class="k">Call</span><a href="tel:+17049025644">704-902-5644</a></div>
-          <div class="cline"><span class="k">Email</span><a href="mailto:blueskyvillagerentals@gmail.com">blueskyvillagerentals@gmail.com</a></div>
+          <div class="cline"><span class="k">Email</span><a href="mailto:admin@blueskyvillagerentals.com">admin@blueskyvillagerentals.com</a></div>
           <div class="cline"><span class="k">Visit</span><span>320 Bridgewater, Mooresville&nbsp;NC</span></div>
         </div>
         <p class="closing__expand" data-reveal>Own elsewhere? We&rsquo;re growing into new regions. <a href="#estimate">Let&rsquo;s talk.</a></p>
@@ -1218,7 +1220,7 @@ document.querySelectorAll('[data-reveal]').forEach((el,i)=>{ if(RM){el.style.opa
           ? 'That\u2019s a few attempts in a short time. Give it a moment, or call us on 704-902-5644.'
           : 'We couldn\u2019t confirm that reached us. Please try again, or call us on 704-902-5644.','err');
       }else{
-        fb.innerHTML='We couldn\u2019t submit your request. Please try again, email <a href="mailto:blueskyvillagerentals@gmail.com" style="color:inherit">blueskyvillagerentals@gmail.com</a>, or call 704-902-5644.';
+        fb.innerHTML='We couldn\u2019t submit your request. Please try again, email <a href="mailto:admin@blueskyvillagerentals.com" style="color:inherit">admin@blueskyvillagerentals.com</a>, or call 704-902-5644.';
         fb.className='estimate__fb err';
       }
     }finally{
